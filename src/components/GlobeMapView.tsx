@@ -14,6 +14,9 @@ import type { FeatureCollection, Geometry } from 'geojson';
 import countriesAtlas from 'world-atlas/countries-110m.json';
 import type { PlaceCandidate, StampItem, TravelArc } from '../types/stamp';
 import { buildTravelArcs, getCollectionSummary } from '../utils/stampLogic';
+import { BackButton } from './BackButton';
+import { JellyButton } from './JellyButton';
+import { JellyRadio } from './JellyRadio';
 import { Reicon } from './Reicon';
 
 interface GlobeMapViewProps {
@@ -289,16 +292,7 @@ export function GlobeMapView({
       {/* Header + Segmented Globe/Maps Mode Switch */}
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              aria-label="Back to Profile"
-              className="liquid-glass-btn flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#0A0A0A] focus-visible:outline-2 focus-visible:outline-[#0A0A0A]"
-            >
-              <Reicon name="arrow-left" size={18} />
-            </button>
-          )}
+          {onBack && <BackButton onClick={onBack} ariaLabel="Back to Profile" />}
           <div>
             <p className="text-[12px] font-medium text-neutral-500">
               {summary.countriesCount} Countries · {summary.unlockedCount} Unlocked · {travelArcs.length} Routes
@@ -309,36 +303,27 @@ export function GlobeMapView({
           </div>
         </div>
 
-        <div
-          role="tablist"
-          aria-label="Explorer visualization mode"
-          className="liquid-glass-btn-soft flex items-center gap-1.5 rounded-full p-1"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'globe'}
-            onClick={() => setMode('globe')}
-            className={`flex h-10 items-center gap-2 rounded-full px-4 text-xs font-semibold whitespace-nowrap transition-colors ${
-              mode === 'globe' ? 'bg-[#0A0A0A] text-white' : 'liquid-glass-btn text-[#0A0A0A]'
-            }`}
-          >
-            <Reicon name="globe" size={16} />
-            <span>3D Globe</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'maps'}
-            onClick={() => setMode('maps')}
-            className={`flex h-10 items-center gap-2 rounded-full px-4 text-xs font-semibold whitespace-nowrap transition-colors ${
-              mode === 'maps' ? 'bg-[#0A0A0A] text-white' : 'liquid-glass-btn text-[#0A0A0A]'
-            }`}
-          >
-            <Reicon name="map" size={16} />
-            <span>Google Maps</span>
-          </button>
-        </div>
+        <JellyRadio
+          items={[
+            { value: 'globe', label: '3D Globe', icon: <Reicon name="globe" size={16} /> },
+            { value: 'maps', label: 'Google Maps', icon: <Reicon name="map" size={16} /> },
+          ]}
+          value={mode}
+          onChange={(val) => setMode(val as ExplorerMode)}
+          chipColor="rgba(255, 255, 255, 0.5)"
+          activeColor="#0A0A0A"
+          textColor="#0A0A0A"
+          activeTextColor="#FFFFFF"
+          size="md"
+          gap={8}
+          radius={20}
+          swell={0.07}
+          barge={3}
+          shrink={0.03}
+          jelly={0.9}
+          bounce={0.34}
+          ariaLabel="Explorer visualization mode"
+        />
       </header>
 
       {/* Main Split Workspace on Desktop, Vertical Stack on iOS */}
@@ -352,14 +337,14 @@ export function GlobeMapView({
             >
               <div className="flex w-full items-center justify-between text-xs text-neutral-500">
                 <span>Drag globe to spin · Tap any pin to inspect</span>
-                <button
+                <JellyButton
                   type="button"
                   onClick={() => setRotation([4, -36, 0])}
                   className="liquid-glass-btn flex h-10 items-center gap-1.5 rounded-full px-3.5 text-xs font-medium text-[#0A0A0A]"
                 >
                   <Reicon name="compass" size={14} />
                   <span>Reset View</span>
-                </button>
+                </JellyButton>
               </div>
 
               <svg
@@ -493,7 +478,7 @@ export function GlobeMapView({
               {/* Quick Destination Jump Strip */}
               <div className="mt-2 flex w-full gap-2 overflow-x-auto pb-1">
                 {stamps.map((s) => (
-                  <button
+                  <JellyButton
                     key={s.id}
                     type="button"
                     onClick={() => focusStampOnGlobe(s)}
@@ -508,7 +493,7 @@ export function GlobeMapView({
                       style={{ backgroundColor: s.isUnlocked ? '#34D399' : '#F38D31' }}
                     />
                     <span>{s.title}</span>
-                  </button>
+                  </JellyButton>
                 ))}
               </div>
             </div>
@@ -531,17 +516,17 @@ export function GlobeMapView({
                     placeholder="Search cities or landmarks (e.g., Prado Museum, Tokyo Tower)"
                     className="h-11 flex-1 rounded-full bg-[#F7F7F9] px-4 text-sm text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-2 focus:outline-[#0A0A0A]"
                   />
-                  <button
+                  <JellyButton
                     type="submit"
                     disabled={placesLoading}
                     className="flex h-11 items-center gap-1.5 rounded-full bg-[#0A0A0A] px-5 text-xs font-semibold text-white hover:bg-neutral-800 disabled:opacity-50"
                   >
                     <Reicon name="search" size={16} />
                     <span>Search</span>
-                  </button>
+                  </JellyButton>
                 </form>
 
-                <button
+                <JellyButton
                   type="button"
                   onClick={handleDiscoverNearby}
                   disabled={placesLoading}
@@ -549,7 +534,7 @@ export function GlobeMapView({
                 >
                   <Reicon name="pin" size={16} />
                   <span>Nearby Landmarks</span>
-                </button>
+                </JellyButton>
               </div>
 
               {placesError && (
@@ -599,13 +584,13 @@ export function GlobeMapView({
                             <p className="text-xs text-neutral-600">
                               {activeStamp.city}, {activeStamp.country}
                             </p>
-                            <button
+                            <JellyButton
                               type="button"
                               onClick={() => onSelectStamp(activeStamp)}
                               className="mt-1 inline-flex h-8 items-center rounded-full bg-[#0A0A0A] px-3 text-[11px] font-semibold text-white"
                             >
                               Open Stamp
-                            </button>
+                            </JellyButton>
                           </div>
                         </InfoWindow>
                       )}
@@ -644,14 +629,14 @@ export function GlobeMapView({
                             {place.categoryLabel} · {place.address}
                           </p>
                         </div>
-                        <button
+                        <JellyButton
                           type="button"
                           onClick={() => onAddPlaceAsStamp(place)}
                           className="flex h-10 shrink-0 items-center gap-1 rounded-full bg-[#0A0A0A] px-3.5 text-xs font-semibold text-white hover:bg-neutral-800"
                         >
                           <Reicon name="plus" size={14} />
                           <span>Collect</span>
-                        </button>
+                        </JellyButton>
                       </div>
                     ))}
                   </div>
@@ -692,22 +677,24 @@ export function GlobeMapView({
 
               <div className="mt-4 flex flex-col gap-2">
                 {!activeStamp.isUnlocked ? (
-                  <button
+                  <JellyButton
                     type="button"
+                    jellyIntensity="medium"
                     onClick={() => onCollectStamp(activeStamp.id)}
                     className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#0A0A0A] text-sm font-semibold text-white hover:bg-neutral-800"
                   >
                     <Reicon name="check" size={16} />
                     <span>Collect Location Stamp</span>
-                  </button>
+                  </JellyButton>
                 ) : (
-                  <button
+                  <JellyButton
                     type="button"
+                    jellyIntensity="medium"
                     onClick={() => onSelectStamp(activeStamp)}
                     className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#0A0A0A] text-sm font-semibold text-white hover:bg-neutral-800"
                   >
                     <span>View Stamp Details</span>
-                  </button>
+                  </JellyButton>
                 )}
               </div>
             </div>

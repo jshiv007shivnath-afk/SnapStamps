@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import type { PocketTint, StampItem, StampPocket, UserProfile } from '../types/stamp';
 import { getPocketStampCount, getPocketStamps } from '../utils/stampLogic';
+import { AppLogo } from './AppLogo';
 import { Folder } from './Folder';
+import { JellyButton } from './JellyButton';
 import { Reicon } from './Reicon';
 
 interface StampLibraryViewProps {
@@ -196,11 +198,28 @@ function VintagePocketStamp({ spec }: { spec: FanStampCardSpec }) {
   return (
     <div className="h-full w-full select-none">
       <div className="stamp-perforated-x h-full w-full">
-        <div className="stamp-perforated-y h-full w-full bg-white p-[4.5px] sm:p-[5.5px]">
+        <div className="stamp-perforated-y h-full w-full bg-[#FFFDF7] p-[4.5px] sm:p-[5.5px]">
           <div
-            className="relative h-full w-full overflow-hidden"
+            className="relative h-full w-full overflow-hidden rounded-[2px] ring-1 ring-inset ring-black/10"
             style={{ backgroundColor: spec.skyColor }}
           >
+            {/* Warm Vintage Sun & Sky Glow */}
+            <svg
+              viewBox="0 0 90 74"
+              preserveAspectRatio="none"
+              className="pointer-events-none absolute inset-0 h-full w-full"
+              aria-hidden="true"
+            >
+              <circle cx="70" cy="20" r="11" fill="#FFFDF7" opacity="0.28" />
+              <path
+                d="M52 12 Q60 9 68 12 T84 12 M52 17 Q60 14 68 17 T84 17"
+                fill="none"
+                stroke="#0A0A0A"
+                strokeWidth="0.7"
+                opacity="0.2"
+              />
+            </svg>
+
             {/* Vintage Condensed Stamp Label (Oswald / Barlow Condensed) */}
             <div className="relative z-10 flex items-start justify-between gap-1 px-1.5 pt-1">
               <span
@@ -211,7 +230,7 @@ function VintagePocketStamp({ spec }: { spec: FanStampCardSpec }) {
                 {spec.label}
               </span>
               {spec.postage && (
-                <span className="font-body shrink-0 text-[8px] font-semibold tracking-tight text-[#0A0A0A]/85 sm:text-[9px]">
+                <span className="font-body shrink-0 rounded-[2px] bg-[#FFFDF7]/75 px-1 py-0.5 text-[7.5px] font-semibold tracking-tight text-[#0A0A0A] sm:text-[8.5px]">
                   {spec.postage}
                 </span>
               )}
@@ -310,10 +329,10 @@ function PocketFolderCard({
           frontOverlay={
             <div className="pointer-events-none flex h-full w-full items-center justify-end px-5">
               {/* Liquid Glass '+' Trigger on Right Edge matching Reference Pockets */}
-              <motion.button
+              <JellyButton
                 type="button"
+                jellyIntensity="medium"
                 data-folder-overlay-action="true"
-                whileTap={{ scale: 0.92 }}
                 onClick={(e) => {
                   e.stopPropagation();
                   onQuickAddToPocket(pocket.id);
@@ -322,14 +341,14 @@ function PocketFolderCard({
                 className="liquid-glass-btn pointer-events-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#0A0A0A] focus-visible:outline-2 focus-visible:outline-[#0A0A0A]"
               >
                 <Reicon name="plus" size={20} />
-              </motion.button>
+              </JellyButton>
             </div>
           }
         />
       </div>
 
       {/* Clean Centered Title & Count Below Pocket (tap to open full pocket grid) */}
-      <button
+      <JellyButton
         type="button"
         onClick={() => onOpenPocket(pocket.id)}
         className="mt-3 flex min-h-[44px] flex-col items-center justify-center rounded-xl px-4 text-center transition-opacity hover:opacity-75 focus-visible:outline-2 focus-visible:outline-[#0A0A0A]"
@@ -340,7 +359,7 @@ function PocketFolderCard({
         <span className="font-mono-nums text-[12px] font-normal text-neutral-500">
           {unlockedCount} {unlockedCount === 1 ? 'Stamp' : 'Stamps'}
         </span>
-      </button>
+      </JellyButton>
     </section>
   );
 }
@@ -396,7 +415,7 @@ export function StampLibraryView({
     <div className="mx-auto w-full max-w-5xl px-5 pb-32 pt-4 sm:px-8">
       {/* Top User Row matching Reference Screen 2 & Image 3 */}
       <header className="flex items-center justify-between gap-4">
-        <button
+        <JellyButton
           type="button"
           onClick={onOpenProfile}
           aria-label="Open traveler profile"
@@ -409,11 +428,11 @@ export function StampLibraryView({
             <p className="font-body text-[12px] font-normal text-neutral-500">Hello,</p>
             <p className="font-title text-[15px] font-medium text-[#0A0A0A]">{userProfile.name}</p>
           </div>
-        </button>
+        </JellyButton>
 
         {/* Dark Pill Icon Island matching Reference Screen 2 */}
         <div className="flex h-11 items-center rounded-full bg-[#0A0A0A] px-1.5 text-white">
-          <button
+          <JellyButton
             type="button"
             onClick={() => setSearchOpen((prev) => !prev)}
             aria-label="Search stamp library"
@@ -421,15 +440,15 @@ export function StampLibraryView({
             className="flex h-11 w-10 items-center justify-center rounded-full transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-white"
           >
             <Reicon name="search" size={18} />
-          </button>
-          <button
+          </JellyButton>
+          <JellyButton
             type="button"
             onClick={onOpenSwiftUIExport}
             aria-label="Notifications and SwiftUI export"
             className="flex h-11 w-10 items-center justify-center rounded-full transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-white"
           >
             <Reicon name="bell" size={18} />
-          </button>
+          </JellyButton>
         </div>
       </header>
 
@@ -455,22 +474,25 @@ export function StampLibraryView({
               className="font-body w-full bg-transparent text-sm text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-none"
             />
             {searchQuery && (
-              <button
+              <JellyButton
                 type="button"
                 onClick={() => onSearchChange('')}
                 aria-label="Clear library search"
                 className="liquid-glass-btn flex h-9 w-9 items-center justify-center rounded-full text-neutral-600"
               >
                 <Reicon name="close" size={16} />
-              </button>
+              </JellyButton>
             )}
           </div>
         </motion.div>
       )}
 
-      {/* Clean Welcome Heading matching Image 3 */}
+      {/* Clean Welcome Heading with SnapStamps Scalloped Seal Logo */}
       <div className="mt-6">
-        <p className="font-title text-[19px] font-normal leading-snug text-neutral-800">Welcome</p>
+        <div className="flex items-center gap-2">
+          <AppLogo size={20} />
+          <p className="font-title text-[19px] font-normal leading-snug text-neutral-800">Welcome</p>
+        </div>
         <h1 className="font-title text-[26px] font-medium tracking-[-0.02em] text-[#0A0A0A] sm:text-[30px]">
           Your Stamp Library
         </h1>

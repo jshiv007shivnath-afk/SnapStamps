@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import type { StampItem, UserProfile } from '../types/stamp';
 import { getCollectionSummary } from '../utils/stampLogic';
+import { AppLogo } from './AppLogo';
+import { BackButton } from './BackButton';
+import { JellyButton } from './JellyButton';
 import { PerforatedStampCard } from './PerforatedStampCard';
 import { Reicon } from './Reicon';
 
@@ -9,6 +12,7 @@ interface ProfileViewProps {
   profile: UserProfile;
   stamps: StampItem[];
   postsCount: number;
+  onBack: () => void;
   onUpdateProfile: (next: UserProfile) => void;
   onSelectStamp: (stamp: StampItem) => void;
   onOpenGlobe: () => void;
@@ -20,6 +24,7 @@ export function ProfileView({
   profile,
   stamps,
   postsCount,
+  onBack,
   onUpdateProfile,
   onSelectStamp,
   onOpenGlobe,
@@ -76,17 +81,20 @@ export function ProfileView({
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 pb-32 pt-4 sm:px-8">
-      {/* Top Bar matching Swiss-minimalist Library & My Stamps header */}
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <p className="font-body text-[12px] font-normal text-neutral-500">Passport Account</p>
-          <h1 className="font-title text-[26px] font-medium tracking-[-0.02em] text-[#0A0A0A]">
-            Profile
-          </h1>
+      {/* Top Bar with black circular BackButton + Title */}
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <BackButton onClick={onBack} ariaLabel="Back to Stamp Library" />
+          <div>
+            <p className="font-body text-[12px] font-normal text-neutral-500">Passport Account</p>
+            <h1 className="font-title text-[24px] font-medium tracking-[-0.02em] text-[#0A0A0A] sm:text-[26px]">
+              Profile
+            </h1>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button
+          <JellyButton
             type="button"
             onClick={() => {
               setNameInput(profile.name);
@@ -98,16 +106,16 @@ export function ProfileView({
           >
             <Reicon name={editing ? 'close' : 'user'} size={16} />
             <span>{editing ? 'Cancel' : 'Edit'}</span>
-          </button>
+          </JellyButton>
 
-          <button
+          <JellyButton
             type="button"
             onClick={onOpenSwiftUIExport}
             aria-label="Open SwiftUI and data utilities"
             className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0A0A0A] text-white transition-colors hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-[#0A0A0A]"
           >
             <Reicon name="code" size={18} />
-          </button>
+          </JellyButton>
         </div>
       </header>
 
@@ -115,8 +123,11 @@ export function ProfileView({
       <section className="liquid-glass-btn-soft mt-6 rounded-[28px] p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#E9DEC9] text-[18px] font-bold text-[#0A0A0A]">
+            <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#E9DEC9] text-[18px] font-bold text-[#0A0A0A]">
               {profile.initials}
+              <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-[#F7F7F9]">
+                <AppLogo size={20} />
+              </span>
             </div>
             <div>
               <h2 className="font-title text-[20px] font-semibold text-[#0A0A0A]">
@@ -131,13 +142,14 @@ export function ProfileView({
             </div>
           </div>
 
-          <button
+          <JellyButton
             type="button"
+            jellyIntensity="medium"
             onClick={onSignOut}
             className="liquid-glass-btn font-control flex h-11 items-center gap-2 rounded-full px-5 text-[13px] font-medium text-[#0A0A0A] focus-visible:outline-2 focus-visible:outline-[#0A0A0A]"
           >
             <span>Sign Out</span>
-          </button>
+          </JellyButton>
         </div>
 
         {/* Inline Edit Profile Form */}
@@ -190,12 +202,13 @@ export function ProfileView({
             {errorMsg && <p className="text-xs font-medium text-[#D64527] sm:col-span-3">{errorMsg}</p>}
 
             <div className="flex justify-end sm:col-span-3">
-              <button
+              <JellyButton
                 type="submit"
+                jellyIntensity="medium"
                 className="font-control flex h-11 items-center justify-center rounded-full bg-[#0A0A0A] px-6 text-[13px] font-medium text-white hover:bg-neutral-800"
               >
                 Save Passport Details
-              </button>
+              </JellyButton>
             </div>
           </motion.form>
         )}
@@ -226,7 +239,7 @@ export function ProfileView({
 
       {/* Quick Actions: Atlas Map & SwiftUI Export */}
       <section className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <button
+        <JellyButton
           type="button"
           onClick={onOpenGlobe}
           className="liquid-glass-btn flex h-14 items-center justify-between rounded-[24px] px-5 text-left focus-visible:outline-2 focus-visible:outline-[#0A0A0A]"
@@ -245,9 +258,9 @@ export function ProfileView({
             </div>
           </div>
           <Reicon name="map-point" size={18} color="#0A0A0A" />
-        </button>
+        </JellyButton>
 
-        <button
+        <JellyButton
           type="button"
           onClick={onOpenSwiftUIExport}
           className="liquid-glass-btn flex h-14 items-center justify-between rounded-[24px] px-5 text-left focus-visible:outline-2 focus-visible:outline-[#0A0A0A]"
@@ -266,7 +279,7 @@ export function ProfileView({
             </div>
           </div>
           <Reicon name="download" size={18} color="#0A0A0A" />
-        </button>
+        </JellyButton>
       </section>
 
       {/* Country Milestones */}

@@ -56,11 +56,19 @@ function loadInitialState(): PersistedState {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<PersistedState>;
       if (Array.isArray(parsed.stamps) && Array.isArray(parsed.pockets) && Array.isArray(parsed.posts)) {
+        const seedById = new Map(DEMO_STAMPS.map((s) => [s.id, s]));
+        const syncedStamps = parsed.stamps.map((s) => {
+          const seed = seedById.get(s.id);
+          if (seed && s.isDemoSeed && !s.isCustomGenerated) {
+            return { ...s, imageUrl: seed.imageUrl };
+          }
+          return s;
+        });
         return {
           hasOnboarded: autostart ? true : Boolean(parsed.hasOnboarded),
           isAuthenticated: autostart ? true : parsed.isAuthenticated ?? Boolean(parsed.hasOnboarded),
           userProfile: parsed.userProfile ?? DEFAULT_PROFILE,
-          stamps: parsed.stamps,
+          stamps: syncedStamps,
           pockets: parsed.pockets,
           posts: parsed.posts,
         };
@@ -256,26 +264,19 @@ export default function App() {
         </div>
       )}
 
-      {showLoginScreen ? (
+      {!isAuthenticated || showLoginScreen ? (
         <LoginView
-          featuredStamps={stamps}
           defaultProfile={userProfile}
           onAuthenticated={(nextProfile) => {
             setUserProfile(nextProfile);
             setIsAuthenticated(true);
-            setHasOnboarded(true);
             setShowLoginScreen(false);
             setActiveTab('library');
           }}
-          onContinueGuest={() => {
+          onContinueGoogle={() => {
             setIsAuthenticated(true);
-            setHasOnboarded(true);
             setShowLoginScreen(false);
             setActiveTab('library');
-          }}
-          onBackToOnboarding={() => {
-            setShowLoginScreen(false);
-            setHasOnboarded(false);
           }}
         />
       ) : !hasOnboarded ? (
@@ -283,9 +284,7 @@ export default function App() {
           featuredStamps={stamps}
           onGetStarted={() => {
             setHasOnboarded(true);
-            setIsAuthenticated(true);
           }}
-          onOpenLogin={() => setShowLoginScreen(true)}
         />
       ) : (
         <main className="min-h-screen">
@@ -337,6 +336,7 @@ export default function App() {
             <SocialFeedView
               posts={posts}
               stamps={stamps}
+              onBack={() => setActiveTab('library')}
               onToggleLike={handleTogglePostLike}
               onToggleSave={handleTogglePostSave}
               onSelectStamp={(s) => setSelectedStampId(s.id)}
@@ -349,6 +349,7 @@ export default function App() {
               profile={userProfile}
               stamps={stamps}
               postsCount={posts.length}
+              onBack={() => setActiveTab('library')}
               onUpdateProfile={setUserProfile}
               onSelectStamp={(s) => setSelectedStampId(s.id)}
               onOpenGlobe={() => setActiveTab('globe')}

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import type { StampCategory, StampItem, StampPocket } from '../types/stamp';
+import { JellyButton } from './JellyButton';
+import { JellyRadio } from './JellyRadio';
 import { Reicon } from './Reicon';
 
 interface StampStudioModalProps {
@@ -208,45 +210,54 @@ export function StampStudioModal({
             <p className="text-xs font-medium text-neutral-500">Gemini Nano Banana 2.1</p>
             <h2 className="font-display text-xl font-bold text-[#0A0A0A]">Stamp Studio</h2>
           </div>
-          <button
+          <JellyButton
             type="button"
             onClick={onClose}
             aria-label="Close Stamp Studio"
             className="liquid-glass-btn flex h-11 w-11 items-center justify-center rounded-full text-[#0A0A0A]"
           >
             <Reicon name="close" size={20} />
-          </button>
+          </JellyButton>
         </div>
 
-        {/* Create vs Edit Segmented Toggle */}
-        <div className="liquid-glass-btn-soft mt-4 flex gap-1.5 rounded-full p-1">
-          <button
-            type="button"
-            onClick={() => {
-              setMode('create');
+        {/* Create vs Edit Segmented Toggle with JellyRadio */}
+        <div className="mt-4 flex justify-start">
+          <JellyRadio
+            items={[
+              {
+                value: 'create',
+                label: 'Create New Stamp',
+                icon: <Reicon name="image-sparkle" size={16} />,
+              },
+              {
+                value: 'edit',
+                label: 'Edit Existing Art',
+                icon: <Reicon name="wand" size={16} />,
+              },
+            ]}
+            value={mode}
+            onChange={(next) => {
+              const nextMode = next as StudioMode;
+              setMode(nextMode);
               setErrorMsg('');
+              if (nextMode === 'edit' && targetEditStamp && !previewUrl) {
+                setPreviewUrl(targetEditStamp.imageUrl);
+              }
             }}
-            className={`flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-xs font-semibold transition-colors ${
-              mode === 'create' ? 'bg-[#0A0A0A] text-white' : 'liquid-glass-btn text-[#0A0A0A]'
-            }`}
-          >
-            <Reicon name="image-sparkle" size={16} />
-            <span>Create New Stamp</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode('edit');
-              setErrorMsg('');
-              if (targetEditStamp && !previewUrl) setPreviewUrl(targetEditStamp.imageUrl);
-            }}
-            className={`flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-xs font-semibold transition-colors ${
-              mode === 'edit' ? 'bg-[#0A0A0A] text-white' : 'liquid-glass-btn text-[#0A0A0A]'
-            }`}
-          >
-            <Reicon name="wand" size={16} />
-            <span>Edit Existing Art</span>
-          </button>
+            chipColor="rgba(255, 255, 255, 0.5)"
+            activeColor="#0A0A0A"
+            textColor="#0A0A0A"
+            activeTextColor="#FFFFFF"
+            size="md"
+            gap={8}
+            radius={20}
+            swell={0.07}
+            barge={3}
+            shrink={0.03}
+            jelly={0.9}
+            bounce={0.34}
+            ariaLabel="Stamp studio mode"
+          />
         </div>
 
         <form onSubmit={handleGenerate} className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-12">
@@ -382,35 +393,36 @@ export function StampStudioModal({
             {errorMsg && (
               <div className="rounded-2xl bg-amber-50 p-3 text-xs text-amber-900">
                 <p className="font-medium">{errorMsg}</p>
-                <button
+                <JellyButton
                   type="button"
                   onClick={handleUseVectorPreview}
                   className="mt-2 font-semibold underline"
                 >
                   Generate crisp vector stamp preview instead
-                </button>
+                </JellyButton>
               </div>
             )}
 
             {noticeMsg && <p className="text-xs font-medium text-emerald-700">{noticeMsg}</p>}
 
             <div className="flex flex-wrap gap-2 pt-1">
-              <button
+              <JellyButton
                 type="submit"
+                jellyIntensity="medium"
                 disabled={loading}
                 className="flex h-11 items-center gap-2 rounded-full bg-[#0A0A0A] px-5 text-xs font-semibold text-white hover:bg-neutral-800 disabled:opacity-50"
               >
                 <Reicon name="wand" size={15} />
                 <span>{loading ? 'Generating...' : mode === 'create' ? 'Generate with Gemini' : 'Apply Gemini Edit'}</span>
-              </button>
+              </JellyButton>
 
-              <button
+              <JellyButton
                 type="button"
                 onClick={handleUseVectorPreview}
                 className="liquid-glass-btn flex h-11 items-center gap-1.5 rounded-full px-4 text-xs font-semibold text-[#0A0A0A]"
               >
                 <span>Vector Preview</span>
-              </button>
+              </JellyButton>
             </div>
           </div>
 
@@ -420,43 +432,47 @@ export function StampStudioModal({
               Live Stamp Proof
             </p>
 
-            <div className="my-4 w-[160px]">
+            <div className="my-4 w-[166px]">
               <div className="stamp-perforated-x w-full">
-                <div
-                  className="stamp-perforated-y p-[8px]"
-                  style={{ backgroundColor: '#F3D2B3' }}
-                >
-                  <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[6px] bg-[#F7F7F9]">
-                    {previewUrl ? (
-                      <img
-                        src={previewUrl}
-                        alt="Generated stamp preview"
-                        referrerPolicy="no-referrer"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-center text-neutral-400">
-                        <Reicon name="image-sparkle" size={26} />
-                        <span className="text-[11px]">Artwork preview appears here</span>
+                <div className="stamp-perforated-y bg-[#FFFDF7] p-[5px]">
+                  <div
+                    className="rounded-[4px] p-[4px]"
+                    style={{ backgroundColor: '#F3D2B3' }}
+                  >
+                    <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[3px] bg-[#FAF6EE] ring-1 ring-inset ring-black/10">
+                      {previewUrl ? (
+                        <img
+                          src={previewUrl}
+                          alt="Generated stamp preview"
+                          referrerPolicy="no-referrer"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-center text-neutral-400">
+                          <Reicon name="image-sparkle" size={26} />
+                          <span className="text-[11px]">Artwork preview appears here</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-x-1.5 bottom-1.5 rounded-[3px] bg-[#FFFDF7]/96 px-1.5 py-1 text-center ring-1 ring-black/8">
+                        <div className="mx-auto mb-0.5 h-[1.5px] w-7 rounded-full bg-[#D64527]/55" />
+                        <p className="font-stamp-title truncate text-[11px] font-bold tracking-[0.05em] text-[#D64527]">
+                          {(mode === 'create' ? title : targetEditStamp?.title) || 'SNAPSTAMPS'}
+                        </p>
                       </div>
-                    )}
-                    <div className="absolute inset-x-1.5 bottom-1.5 rounded-[4px] bg-white/95 px-1.5 py-1 text-center">
-                      <p className="font-stamp-title truncate text-[11px] font-bold tracking-[0.05em] text-[#D64527]">
-                        {(mode === 'create' ? title : targetEditStamp?.title) || 'SNAPSTAMPS'}
-                      </p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <button
+            <JellyButton
               type="button"
+              jellyIntensity="medium"
               onClick={handleSave}
               className="flex h-11 w-full items-center justify-center rounded-full bg-[#0A0A0A] text-xs font-semibold text-white hover:bg-neutral-800"
             >
               {mode === 'create' ? 'Save to Library' : 'Save Updated Stamp'}
-            </button>
+            </JellyButton>
           </div>
         </form>
       </motion.div>

@@ -84,7 +84,7 @@
   backdrop-filter: blur(18px) saturate(185%);
   border: 1px solid rgba(255, 255, 255, 0.78);
   box-shadow: none !important;
-  transition: background 180ms ease, transform 160ms ease, opacity 160ms ease;
+  transition: background 180ms ease, opacity 160ms ease;
 }
 
 .liquid-glass-btn:hover {
@@ -106,7 +106,7 @@
   backdrop-filter: blur(16px) saturate(175%);
   border: 1px solid rgba(255, 255, 255, 0.72);
   box-shadow: none !important;
-  transition: background 180ms ease, transform 160ms ease;
+  transition: background 180ms ease, opacity 160ms ease;
 }
 
 .liquid-glass-btn-soft:hover {
@@ -119,18 +119,18 @@
 
 /* Perforated postage stamp edge masks using non-overlapping additive layers */
 .stamp-perforated-x {
-  --tooth: 11px;
-  --hole: 3.5px;
+  --tooth: 10px;
+  --hole: 3.1px;
   -webkit-mask-image:
-    radial-gradient(circle at 0 50%, transparent var(--hole), #000 calc(var(--hole) + 0.6px)),
-    radial-gradient(circle at 100% 50%, transparent var(--hole), #000 calc(var(--hole) + 0.6px));
+    radial-gradient(circle at 0 50%, transparent var(--hole), #000 calc(var(--hole) + 0.55px)),
+    radial-gradient(circle at 100% 50%, transparent var(--hole), #000 calc(var(--hole) + 0.55px));
   -webkit-mask-position: top left, top right;
   -webkit-mask-size: 50.5% var(--tooth), 50.5% var(--tooth);
   -webkit-mask-repeat: repeat-y, repeat-y;
   -webkit-mask-composite: source-over;
   mask-image:
-    radial-gradient(circle at 0 50%, transparent var(--hole), #000 calc(var(--hole) + 0.6px)),
-    radial-gradient(circle at 100% 50%, transparent var(--hole), #000 calc(var(--hole) + 0.6px));
+    radial-gradient(circle at 0 50%, transparent var(--hole), #000 calc(var(--hole) + 0.55px)),
+    radial-gradient(circle at 100% 50%, transparent var(--hole), #000 calc(var(--hole) + 0.55px));
   mask-position: top left, top right;
   mask-size: 50.5% var(--tooth), 50.5% var(--tooth);
   mask-repeat: repeat-y, repeat-y;
@@ -138,18 +138,18 @@
 }
 
 .stamp-perforated-y {
-  --tooth: 11px;
-  --hole: 3.5px;
+  --tooth: 10px;
+  --hole: 3.1px;
   -webkit-mask-image:
-    radial-gradient(circle at 50% 0, transparent var(--hole), #000 calc(var(--hole) + 0.6px)),
-    radial-gradient(circle at 50% 100%, transparent var(--hole), #000 calc(var(--hole) + 0.6px));
+    radial-gradient(circle at 50% 0, transparent var(--hole), #000 calc(var(--hole) + 0.55px)),
+    radial-gradient(circle at 50% 100%, transparent var(--hole), #000 calc(var(--hole) + 0.55px));
   -webkit-mask-position: top left, bottom left;
   -webkit-mask-size: var(--tooth) 50.5%, var(--tooth) 50.5%;
   -webkit-mask-repeat: repeat-x, repeat-x;
   -webkit-mask-composite: source-over;
   mask-image:
-    radial-gradient(circle at 50% 0, transparent var(--hole), #000 calc(var(--hole) + 0.6px)),
-    radial-gradient(circle at 50% 100%, transparent var(--hole), #000 calc(var(--hole) + 0.6px));
+    radial-gradient(circle at 50% 0, transparent var(--hole), #000 calc(var(--hole) + 0.55px)),
+    radial-gradient(circle at 50% 100%, transparent var(--hole), #000 calc(var(--hole) + 0.55px));
   mask-position: top left, bottom left;
   mask-size: var(--tooth) 50.5%, var(--tooth) 50.5%;
   mask-repeat: repeat-x, repeat-x;

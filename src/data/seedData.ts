@@ -1,20 +1,5 @@
 import type { SocialPost, StampItem, StampPocket } from '../types/stamp';
 
-function svgIllustration(bgTop: string, bgBottom: string, sunColor: string, silhouettePath: string, fgColor: string): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400">
-    <defs>
-      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="${bgTop}" />
-        <stop offset="100%" stop-color="${bgBottom}" />
-      </linearGradient>
-    </defs>
-    <rect width="300" height="400" fill="url(#sky)" />
-    <circle cx="215" cy="95" r="34" fill="${sunColor}" />
-    <path d="${silhouettePath}" fill="${fgColor}" />
-  </svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-}
-
 export const DEMO_POCKETS: StampPocket[] = [
   {
     id: 'countries',
@@ -163,13 +148,7 @@ export const DEMO_STAMPS: StampItem[] = [
     isFavorite: false,
     isUnlocked: true,
     coordinates: { lat: 35.0116, lng: 135.7681 },
-    imageUrl: svgIllustration(
-      '#D6EFE9',
-      '#F7D8A8',
-      '#E0533C',
-      'M0 320 L40 280 L90 305 L140 240 L190 290 L240 230 L300 280 L300 400 L0 400 Z M95 250 H205 V268 H95 Z M115 268 V340 H130 V268 Z M170 268 V340 H185 V268 Z',
-      '#1F3A3D'
-    ),
+    imageUrl: '/src/assets/images/stamp_kyoto_1794854644206.jpg',
     accentColor: '#76B59E',
     bannerColor: '#B93829',
     pocketId: 'rare',
@@ -189,13 +168,7 @@ export const DEMO_STAMPS: StampItem[] = [
     isFavorite: false,
     isUnlocked: true,
     coordinates: { lat: 48.8566, lng: 2.3522 },
-    imageUrl: svgIllustration(
-      '#CFE3F5',
-      '#FCE0C8',
-      '#F29F3D',
-      'M0 330 L300 330 L300 400 L0 400 Z M142 110 L158 110 L175 260 L198 330 L172 330 L158 282 L142 282 L128 330 L102 330 L125 260 Z',
-      '#1D3557'
-    ),
+    imageUrl: '/src/assets/images/stamp_paris_1794854643749.jpg',
     accentColor: '#8FB7E0',
     bannerColor: '#1D3557',
     pocketId: 'countries',
@@ -215,13 +188,7 @@ export const DEMO_STAMPS: StampItem[] = [
     isFavorite: false,
     isUnlocked: false,
     coordinates: { lat: 29.9792, lng: 31.1342 },
-    imageUrl: svgIllustration(
-      '#FDE4A6',
-      '#F3AA51',
-      '#D95F28',
-      'M0 320 L300 320 L300 400 L0 400 Z M25 320 L110 190 L195 320 Z M140 320 L220 215 L290 320 Z',
-      '#8D4B1F'
-    ),
+    imageUrl: '/src/assets/images/stamp_cairo_1794854644728.jpg',
     accentColor: '#F3D06B',
     bannerColor: '#9A4A1B',
     pocketId: 'countries',
@@ -240,13 +207,7 @@ export const DEMO_STAMPS: StampItem[] = [
     isFavorite: false,
     isUnlocked: false,
     coordinates: { lat: 36.4618, lng: 25.3753 },
-    imageUrl: svgIllustration(
-      '#B5DDF2',
-      '#F9E9D2',
-      '#F48A3B',
-      'M0 285 Q80 265 150 285 T300 280 L300 400 L0 400 Z M70 210 H140 V285 H70 Z M155 180 A30 30 0 0 1 215 180 V285 H155 Z',
-      '#1D5A8A'
-    ),
+    imageUrl: '/src/assets/images/stamp_santorini_1794854644882.jpg',
     accentColor: '#8EC9E8',
     bannerColor: '#1D5A8A',
     pocketId: 'landmarks',
@@ -265,13 +226,7 @@ export const DEMO_STAMPS: StampItem[] = [
     isFavorite: false,
     isUnlocked: false,
     coordinates: { lat: 40.7128, lng: -74.006 },
-    imageUrl: svgIllustration(
-      '#D9E8F2',
-      '#F6D3B8',
-      '#E76F51',
-      'M0 320 L300 320 L300 400 L0 400 Z M40 240 H72 V320 H40 Z M86 190 H116 V320 H86 Z M130 120 H164 V320 H130 Z M178 205 H214 V320 H178 Z M228 230 H262 V320 H228 Z',
-      '#264653'
-    ),
+    imageUrl: '/src/assets/images/stamp_new_york_1794854645767.jpg',
     accentColor: '#A9C7DA',
     bannerColor: '#264653',
     pocketId: 'rare',

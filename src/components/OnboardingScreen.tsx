@@ -1,37 +1,37 @@
 import { motion } from 'motion/react';
 import type { StampItem } from '../types/stamp';
+import { JellyButton } from './JellyButton';
 import { PerforatedStampCard } from './PerforatedStampCard';
 import { Reicon } from './Reicon';
 
 interface OnboardingScreenProps {
   featuredStamps: StampItem[];
   onGetStarted: () => void;
-  onOpenLogin: () => void;
 }
 
-export function OnboardingScreen({ featuredStamps, onGetStarted, onOpenLogin }: OnboardingScreenProps) {
+export function OnboardingScreen({ featuredStamps, onGetStarted }: OnboardingScreenProps) {
   const topStamp = featuredStamps.find((s) => s.id === 'islas-canarias') ?? featuredStamps[0];
   const bottomStamp = featuredStamps.find((s) => s.id === 'sevilla') ?? featuredStamps[1] ?? featuredStamps[0];
 
   return (
     <div className="flex min-h-screen w-full flex-col justify-between bg-[#F7F7F9] px-6 py-8 sm:px-10 lg:mx-auto lg:max-w-5xl lg:flex-row lg:items-center lg:gap-16 lg:py-16">
       {/* Tilted Stamp Showcase Collage matching Reference Screen 1 */}
-      <div className="relative mx-auto flex h-[390px] w-full max-w-[360px] flex-shrink-0 items-center justify-center sm:h-[440px] lg:order-2 lg:mx-0 lg:h-[480px] lg:max-w-[420px]">
+      <div className="relative mx-auto flex h-[430px] w-full max-w-[360px] flex-shrink-0 items-center justify-center sm:h-[460px] lg:order-2 lg:mx-0 lg:h-[490px] lg:max-w-[420px]">
         {/* Curved connector arrows between the two stamps */}
         <svg
-          viewBox="0 0 360 420"
+          viewBox="0 0 360 440"
           className="pointer-events-none absolute inset-0 h-full w-full"
           aria-hidden="true"
         >
           <path
-            d="M 272 115 C 318 148, 316 232, 266 266"
+            d="M 254 92 C 306 126, 308 196, 276 232"
             fill="none"
             stroke="#98D4DC"
             strokeWidth="1.5"
             strokeDasharray="3 3"
           />
           <path
-            d="M 88 158 C 46 196, 48 272, 96 304"
+            d="M 102 204 C 66 238, 68 308, 108 338"
             fill="none"
             stroke="#F38D31"
             strokeWidth="1.5"
@@ -43,7 +43,7 @@ export function OnboardingScreen({ featuredStamps, onGetStarted, onOpenLogin }: 
           initial={{ scale: 0.7, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.25, type: 'spring', stiffness: 360, damping: 24 }}
-          className="absolute left-6 top-[186px] z-20 flex h-9 w-9 items-center justify-center rounded-full bg-[#FF6B1A] text-white"
+          className="absolute left-5 top-[200px] z-20 flex h-9 w-9 items-center justify-center rounded-full bg-[#FF6B1A] text-white"
         >
           <Reicon name="heart" size={16} weight="Filled" />
         </motion.div>
@@ -53,7 +53,7 @@ export function OnboardingScreen({ featuredStamps, onGetStarted, onOpenLogin }: 
           initial={{ scale: 0.7, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.32, type: 'spring', stiffness: 360, damping: 24 }}
-          className="absolute right-6 top-[198px] z-20 flex h-9 w-9 items-center justify-center rounded-full bg-[#BFE3EA] text-[#0A0A0A]"
+          className="absolute right-5 top-[210px] z-20 flex h-9 w-9 items-center justify-center rounded-full bg-[#BFE3EA] text-[#0A0A0A]"
         >
           <Reicon name="heart" size={16} weight="Outline" />
         </motion.div>
@@ -61,10 +61,10 @@ export function OnboardingScreen({ featuredStamps, onGetStarted, onOpenLogin }: 
         {/* Top tilted stamp card + backing pastel card */}
         {topStamp && (
           <motion.div
-            initial={{ y: -18, opacity: 0, rotate: -14 }}
-            animate={{ y: 0, opacity: 1, rotate: -10 }}
+            initial={{ y: -18, opacity: 0, rotate: -12 }}
+            animate={{ y: 0, opacity: 1, rotate: -8 }}
             transition={{ type: 'spring', stiffness: 280, damping: 24 }}
-            className="absolute left-12 top-4 z-10 w-[166px] sm:left-16 sm:w-[184px]"
+            className="absolute left-10 top-0 z-10 w-[152px] sm:left-14 sm:w-[172px]"
           >
             <div
               aria-hidden="true"
@@ -80,10 +80,10 @@ export function OnboardingScreen({ featuredStamps, onGetStarted, onOpenLogin }: 
         {/* Bottom tilted stamp card + backing peach card */}
         {bottomStamp && (
           <motion.div
-            initial={{ y: 18, opacity: 0, rotate: 12 }}
+            initial={{ y: 18, opacity: 0, rotate: 11 }}
             animate={{ y: 0, opacity: 1, rotate: 7 }}
             transition={{ delay: 0.1, type: 'spring', stiffness: 280, damping: 24 }}
-            className="absolute bottom-3 right-12 z-10 w-[166px] sm:right-16 sm:w-[184px]"
+            className="absolute bottom-0 right-10 z-10 w-[152px] sm:right-14 sm:w-[172px]"
           >
             <div
               aria-hidden="true"
@@ -97,42 +97,26 @@ export function OnboardingScreen({ featuredStamps, onGetStarted, onOpenLogin }: 
         )}
       </div>
 
-      {/* Headline, Subcopy, and Primary Black Pill CTA */}
+      {/* Headline, Subcopy, and Single Primary Black Pill CTA matching Reference Image */}
       <div className="mx-auto flex w-full max-w-md flex-col gap-6 pb-4 lg:order-1 lg:mx-0 lg:max-w-lg">
         <div className="space-y-3">
-          <span className="font-body inline-block text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">
-            SnapStamps Passport
-          </span>
           <h1 className="font-hero text-[36px] leading-[1.08] tracking-[-0.025em] text-[#0A0A0A] sm:text-[44px] [text-wrap:balance]">
             <span className="block font-bold">Collect Stamps.</span>
             <span className="block font-normal">Unlock Rewards.</span>
           </h1>
           <p className="font-body text-[15px] font-normal leading-relaxed text-neutral-500">
-            Collect More, Get More — Stamp Rewards across countries, cities, and landmarks on an interactive 3D globe.
+            Collect More, Get More – Stamp Rewards
           </p>
         </div>
 
-        <div className="flex flex-col gap-2.5">
-          <motion.button
-            type="button"
-            onClick={onGetStarted}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-            className="font-control flex h-14 w-full items-center justify-center rounded-full bg-[#0A0A0A] px-8 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0A0A0A]"
-          >
-            Get Started
-          </motion.button>
-
-          <motion.button
-            type="button"
-            onClick={onOpenLogin}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-            className="liquid-glass-btn font-control flex h-12 w-full items-center justify-center rounded-full px-8 text-[14px] font-medium text-[#0A0A0A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A0A0A]"
-          >
-            Sign In to Passport
-          </motion.button>
-        </div>
+        <JellyButton
+          type="button"
+          jellyIntensity="medium"
+          onClick={onGetStarted}
+          className="font-control flex h-14 w-full items-center justify-center rounded-full bg-[#0A0A0A] px-8 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0A0A0A]"
+        >
+          Get Started
+        </JellyButton>
       </div>
     </div>
   );

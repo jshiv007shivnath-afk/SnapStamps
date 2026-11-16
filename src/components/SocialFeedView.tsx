@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import type { SocialPost, StampItem } from '../types/stamp';
+import { BackButton } from './BackButton';
+import { JellyButton } from './JellyButton';
 import { PerforatedStampCard } from './PerforatedStampCard';
 import { Reicon } from './Reicon';
 
 interface SocialFeedViewProps {
   posts: SocialPost[];
   stamps: StampItem[];
+  onBack: () => void;
   onToggleLike: (postId: string) => void;
   onToggleSave: (postId: string) => void;
   onSelectStamp: (stamp: StampItem) => void;
@@ -16,6 +19,7 @@ interface SocialFeedViewProps {
 export function SocialFeedView({
   posts,
   stamps,
+  onBack,
   onToggleLike,
   onToggleSave,
   onSelectStamp,
@@ -48,23 +52,26 @@ export function SocialFeedView({
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 pb-32 pt-4 sm:px-8">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-[12px] font-medium text-neutral-500">Travelers Circle</p>
-          <h1 className="font-display text-[26px] font-bold tracking-[-0.02em] text-[#0A0A0A]">
-            Rare Finds Feed
-          </h1>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <BackButton onClick={onBack} ariaLabel="Back to Stamp Library" />
+          <div>
+            <p className="text-[12px] font-medium text-neutral-500">Travelers Circle</p>
+            <h1 className="font-display text-[22px] font-bold tracking-[-0.02em] text-[#0A0A0A] sm:text-[26px]">
+              Rare Finds Feed
+            </h1>
+          </div>
         </div>
 
-        <motion.button
+        <JellyButton
           type="button"
-          whileTap={{ scale: 0.96 }}
+          jellyIntensity="medium"
           onClick={() => setComposerOpen((prev) => !prev)}
           className="flex h-11 items-center gap-2 rounded-full bg-[#0A0A0A] px-5 text-[13px] font-semibold text-white transition-colors hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A0A0A]"
         >
           <Reicon name="share" size={16} />
           <span>Share Rare Find</span>
-        </motion.button>
+        </JellyButton>
       </header>
 
       {/* Inline Share Rare Find Composer */}
@@ -79,14 +86,14 @@ export function SocialFeedView({
             <h2 className="font-display text-base font-semibold text-[#0A0A0A]">
               Post to Travelers Circle
             </h2>
-            <button
+            <JellyButton
               type="button"
               onClick={() => setComposerOpen(false)}
               aria-label="Close share composer"
               className="liquid-glass-btn flex h-11 w-11 items-center justify-center rounded-full text-[#0A0A0A]"
             >
               <Reicon name="close" size={18} />
-            </button>
+            </JellyButton>
           </div>
 
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -129,13 +136,14 @@ export function SocialFeedView({
           {errorMsg && <p className="mt-2 text-xs font-medium text-[#D64527]">{errorMsg}</p>}
 
           <div className="mt-4 flex justify-end">
-            <button
+            <JellyButton
               type="submit"
+              jellyIntensity="medium"
               className="flex h-11 items-center gap-2 rounded-full bg-[#0A0A0A] px-6 text-sm font-semibold text-white hover:bg-neutral-800"
             >
               <Reicon name="send" size={16} />
               <span>Publish Find</span>
-            </button>
+            </JellyButton>
           </div>
         </motion.form>
       )}
@@ -198,7 +206,7 @@ export function SocialFeedView({
 
                 {/* Action Row (44px touch targets) */}
                 <div className="mt-4 flex items-center justify-between border-t border-black/5 pt-3">
-                  <button
+                  <JellyButton
                     type="button"
                     onClick={() => onToggleLike(post.id)}
                     aria-label={post.isLiked ? `Unlike ${post.authorName}'s post` : `Like ${post.authorName}'s post`}
@@ -212,9 +220,9 @@ export function SocialFeedView({
                       weight={post.isLiked ? 'Filled' : 'Outline'}
                     />
                     <span className="font-mono-nums">{post.likesCount}</span>
-                  </button>
+                  </JellyButton>
 
-                  <button
+                  <JellyButton
                     type="button"
                     onClick={() => onToggleSave(post.id)}
                     aria-label={post.isSaved ? 'Remove bookmark' : 'Bookmark find'}
@@ -225,7 +233,7 @@ export function SocialFeedView({
                       size={18}
                       weight={post.isSaved ? 'Filled' : 'Outline'}
                     />
-                  </button>
+                  </JellyButton>
                 </div>
               </article>
             );

@@ -2,5 +2,7 @@
   "name": "SnapStamps",
   "description": "Collect illustrated travel stamps across countries, cities, and landmarks on an interactive 3D globe and live map, craft custom stamps, and share rare finds.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

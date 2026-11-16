@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { SWIFTUI_FILES } from '../data/swiftuiTemplates';
+import { JellyButton } from './JellyButton';
 import { Reicon } from './Reicon';
 
 interface SwiftUIExportDrawerProps {
@@ -67,17 +68,17 @@ export function SwiftUIExportDrawer({
               SwiftUI Views &amp; Data Controls
             </h2>
           </div>
-          <button
+          <JellyButton
             type="button"
             onClick={onClose}
             aria-label="Close SwiftUI export drawer"
             className="liquid-glass-btn flex h-11 w-11 items-center justify-center rounded-full text-[#0A0A0A]"
           >
             <Reicon name="close" size={20} />
-          </button>
+          </JellyButton>
         </div>
 
-        {/* Mock Data Cleanup Control (Request Requirement #6) */}
+        {/* Mock Data Cleanup Control */}
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[20px] bg-white p-4">
           <div>
             <p className="font-display text-sm font-semibold text-[#0A0A0A]">
@@ -90,30 +91,30 @@ export function SwiftUIExportDrawer({
             </p>
           </div>
           {hasDemoData ? (
-            <button
+            <JellyButton
               type="button"
               onClick={onClearDemoData}
               className="flex h-11 items-center gap-2 rounded-full bg-[#0A0A0A] px-4 text-xs font-semibold text-white hover:bg-neutral-800"
             >
               <Reicon name="trash" size={15} />
               <span>Clear Demo Data</span>
-            </button>
+            </JellyButton>
           ) : (
-            <button
+            <JellyButton
               type="button"
               onClick={onRestoreDemoData}
               className="liquid-glass-btn flex h-11 items-center gap-2 rounded-full px-4 text-xs font-semibold text-[#0A0A0A]"
             >
               <Reicon name="refresh" size={15} />
               <span>Restore Demo Data</span>
-            </button>
+            </JellyButton>
           )}
         </div>
 
         {/* SwiftUI File Tabs */}
         <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
           {SWIFTUI_FILES.map((file) => (
-            <button
+            <JellyButton
               key={file.id}
               type="button"
               onClick={() => setSelectedFileId(file.id)}
@@ -124,7 +125,7 @@ export function SwiftUIExportDrawer({
               }`}
             >
               {file.filename}
-            </button>
+            </JellyButton>
           ))}
         </div>
 
@@ -133,22 +134,22 @@ export function SwiftUIExportDrawer({
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
             <span className="text-xs font-medium text-neutral-300">{activeFile.title}</span>
             <div className="flex items-center gap-2">
-              <button
+              <JellyButton
                 type="button"
                 onClick={handleCopy}
                 className="flex h-9 items-center gap-1.5 rounded-full bg-white/10 px-3 text-xs font-medium text-white hover:bg-white/20"
               >
                 <Reicon name={copied ? 'check' : 'copy'} size={14} />
                 <span>{copied ? 'Copied' : 'Copy'}</span>
-              </button>
-              <button
+              </JellyButton>
+              <JellyButton
                 type="button"
                 onClick={handleDownload}
                 className="flex h-9 items-center gap-1.5 rounded-full border border-white/25 bg-white/18 px-3 text-xs font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/28"
               >
                 <Reicon name="download" size={14} />
                 <span>Download</span>
-              </button>
+              </JellyButton>
             </div>
           </div>
 

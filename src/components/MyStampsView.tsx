@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import type { CollectionFilter, StampItem, StampPocket } from '../types/stamp';
 import { filterStamps } from '../utils/stampLogic';
+import { BackButton } from './BackButton';
+import { JellyButton } from './JellyButton';
+import { JellyRadio } from './JellyRadio';
 import { PerforatedStampCard } from './PerforatedStampCard';
 import { Reicon } from './Reicon';
 
@@ -20,11 +23,11 @@ interface MyStampsViewProps {
   onOpenStudio: () => void;
 }
 
-const FILTER_TABS: Array<{ id: CollectionFilter; label: string }> = [
-  { id: 'all', label: 'All' },
-  { id: 'national', label: 'National' },
-  { id: 'favorites', label: 'Favorites' },
-  { id: 'rare', label: 'Rare' },
+const FILTER_TABS: Array<{ value: CollectionFilter; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'national', label: 'National' },
+  { value: 'favorites', label: 'Favorites' },
+  { value: 'rare', label: 'Rare' },
 ];
 
 export function MyStampsView({
@@ -50,18 +53,11 @@ export function MyStampsView({
     <div className="mx-auto w-full max-w-5xl px-5 pb-36 pt-4 sm:px-8">
       {/* Top Bar matching Reference Screen 3 */}
       <header className="flex items-center justify-between gap-4">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Back to Stamp Library"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0A0A0A] text-white transition-colors hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A0A0A]"
-        >
-          <Reicon name="arrow-left" size={18} />
-        </button>
+        <BackButton onClick={onBack} ariaLabel="Back to Stamp Library" />
 
         <h1 className="font-title text-[17px] font-medium text-[#0A0A0A]">My Stamps</h1>
 
-        <button
+        <JellyButton
           type="button"
           onClick={() => setSearchOpen((prev) => !prev)}
           aria-label="Search my stamps"
@@ -69,7 +65,7 @@ export function MyStampsView({
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0A0A0A] text-white transition-colors hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A0A0A]"
         >
           <Reicon name="search" size={18} />
-        </button>
+        </JellyButton>
       </header>
 
       {/* Expandable Search Input */}
@@ -94,14 +90,14 @@ export function MyStampsView({
               className="w-full bg-transparent text-sm text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-none"
             />
             {searchQuery && (
-              <button
+              <JellyButton
                 type="button"
                 onClick={() => onSearchChange('')}
                 aria-label="Clear stamps search"
                 className="flex h-11 w-11 items-center justify-center text-neutral-400 hover:text-neutral-700"
               >
                 <Reicon name="close" size={18} />
-              </button>
+              </JellyButton>
             )}
           </div>
         </motion.div>
@@ -119,42 +115,39 @@ export function MyStampsView({
         </div>
 
         {activePocket && (
-          <button
+          <JellyButton
             type="button"
             onClick={onClearPocketFilter}
             className="liquid-glass-btn flex h-11 items-center gap-1.5 rounded-full px-3.5 text-xs font-medium text-[#0A0A0A]"
           >
             <span>All pockets</span>
             <Reicon name="close" size={14} />
-          </button>
+          </JellyButton>
         )}
       </div>
 
-      {/* Interactive Filter Tabs on one clean horizontal line matching Image 4 */}
-      <div
-        role="tablist"
-        aria-label="Filter stamp collections"
-        className="mt-4 flex flex-nowrap items-center gap-2 overflow-x-auto"
-      >
-        {FILTER_TABS.map((tab) => {
-          const isActive = activeFilter === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => onFilterChange(tab.id)}
-              className={`font-control flex h-10 shrink-0 items-center justify-center rounded-full px-4 text-[13px] font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A0A0A] ${
-                isActive
-                  ? 'bg-[#0A0A0A] text-white'
-                  : 'liquid-glass-btn text-[#0A0A0A]'
-              }`}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
+      {/* Single-line JellyRadio Filter Tabs with liquid-glass idle pills & soft spring ripple */}
+      <div className="mt-3 -mx-1 overflow-x-auto px-1">
+        <JellyRadio
+          items={FILTER_TABS}
+          value={activeFilter}
+          onChange={(val) => onFilterChange(val as CollectionFilter)}
+          chipColor="rgba(255, 255, 255, 0.45)"
+          activeColor="#0A0A0A"
+          textColor="#0A0A0A"
+          activeTextColor="#FFFFFF"
+          size="md"
+          gap={6}
+          radius={18}
+          swell={0.08}
+          barge={2}
+          shrink={0.03}
+          jelly={0.9}
+          bounce={0.34}
+          stagger={22}
+          stiffness={620}
+          ariaLabel="Filter stamp collections"
+        />
       </div>
 
       {/* Stamp Grid (2 columns mobile matching Reference Screen 3, 3-4 columns desktop) */}
@@ -164,13 +157,14 @@ export function MyStampsView({
           <p className="font-body mt-1 text-sm text-neutral-500">
             Unlock stamps from the Globe Map or craft a custom stamp in the studio.
           </p>
-          <button
+          <JellyButton
             type="button"
+            jellyIntensity="medium"
             onClick={onOpenStudio}
             className="font-control mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#0A0A0A] px-6 text-sm font-medium text-white hover:bg-neutral-800"
           >
             Create Stamp
-          </button>
+          </JellyButton>
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-8">
@@ -187,14 +181,14 @@ export function MyStampsView({
 
       {/* Standalone Enlarged 'Add Stamps' Black Pill at Bottom Center (No Bottom Nav Bar on My Stamps) */}
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-6 pb-safe-dock pt-3">
-        <motion.button
+        <JellyButton
           type="button"
-          whileTap={{ scale: 0.96 }}
+          jellyIntensity="medium"
           onClick={onOpenStudio}
           className="font-control pointer-events-auto flex h-14 min-w-[210px] items-center justify-center rounded-full bg-[#0A0A0A] px-10 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A0A0A]"
         >
           <span>Add Stamps</span>
-        </motion.button>
+        </JellyButton>
       </div>
     </div>
   );

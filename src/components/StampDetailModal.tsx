@@ -1,5 +1,7 @@
 import { motion } from 'motion/react';
 import type { StampItem } from '../types/stamp';
+import { AppLogo } from './AppLogo';
+import { JellyButton } from './JellyButton';
 import { PerforatedStampCard } from './PerforatedStampCard';
 import { Reicon } from './Reicon';
 
@@ -38,17 +40,20 @@ export function StampDetailModal({
         className="w-full max-w-md rounded-t-[28px] bg-[#F7F7F9] p-6 sm:rounded-[28px]"
       >
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-            {stamp.country} · {stamp.rarity}
-          </span>
-          <button
+          <div className="flex items-center gap-2">
+            <AppLogo size={20} />
+            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+              {stamp.country} · {stamp.rarity}
+            </span>
+          </div>
+          <JellyButton
             type="button"
             onClick={onClose}
             aria-label="Close stamp details"
             className="liquid-glass-btn flex h-11 w-11 items-center justify-center rounded-full text-[#0A0A0A]"
           >
             <Reicon name="close" size={20} />
-          </button>
+          </JellyButton>
         </div>
 
         <div className="mx-auto mt-4 w-[190px]">
@@ -70,42 +75,44 @@ export function StampDetailModal({
 
         <div className="mt-6 grid grid-cols-2 gap-2.5">
           {!stamp.isUnlocked ? (
-            <button
+            <JellyButton
               type="button"
+              jellyIntensity="medium"
               onClick={() => onCollectStamp(stamp.id)}
               className="col-span-2 flex h-12 items-center justify-center gap-2 rounded-full bg-[#0A0A0A] text-sm font-semibold text-white hover:bg-neutral-800"
             >
               <Reicon name="check" size={16} />
               <span>Collect Stamp</span>
-            </button>
+            </JellyButton>
           ) : (
-            <button
+            <JellyButton
               type="button"
+              jellyIntensity="medium"
               onClick={() => onShareToFeed(stamp)}
               className="col-span-2 flex h-12 items-center justify-center gap-2 rounded-full bg-[#0A0A0A] text-sm font-semibold text-white hover:bg-neutral-800"
             >
               <Reicon name="share" size={16} />
               <span>Share Rare Find</span>
-            </button>
+            </JellyButton>
           )}
 
-          <button
+          <JellyButton
             type="button"
             onClick={() => onEditWithGemini(stamp)}
             className="liquid-glass-btn flex h-11 items-center justify-center gap-1.5 rounded-full text-xs font-semibold text-[#0A0A0A]"
           >
             <Reicon name="wand" size={15} />
             <span>Remix Art</span>
-          </button>
+          </JellyButton>
 
-          <button
+          <JellyButton
             type="button"
             onClick={() => onLocateOnGlobe(stamp.id)}
             className="liquid-glass-btn flex h-11 items-center justify-center gap-1.5 rounded-full text-xs font-semibold text-[#0A0A0A]"
           >
             <Reicon name="globe" size={15} />
             <span>View on Globe</span>
-          </button>
+          </JellyButton>
         </div>
       </motion.div>
     </div>

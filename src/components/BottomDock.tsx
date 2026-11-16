@@ -1,6 +1,6 @@
-import { motion } from 'motion/react';
 import type { AppTab } from '../types/stamp';
 import { GlassSurface } from './GlassSurface';
+import { JellyButton } from './JellyButton';
 import { JellyRadio } from './JellyRadio';
 import { Reicon, type ReiconName } from './Reicon';
 
@@ -72,11 +72,12 @@ export function BottomDock({ activeTab, onTabChange, onOpenStudio }: BottomDockP
           bounce={0.34}
           stagger={26}
           stiffness={640}
+          className="jelly-radio--icon-mobile"
           ariaLabel="SnapStamps navigation tabs"
         />
       </GlassSurface>
 
-      {/* Separate Circular GlassSurface '+' Stamp Studio Button */}
+      {/* Separate Circular GlassSurface '+' Stamp Studio Button with Soft Jelly Bounce */}
       <GlassSurface
         width={58}
         height={58}
@@ -90,15 +91,15 @@ export function BottomDock({ activeTab, onTabChange, onOpenStudio }: BottomDockP
         blur={11}
         className="pointer-events-auto snap-no-shadow"
       >
-        <motion.button
+        <JellyButton
           type="button"
-          whileTap={{ scale: 0.92 }}
+          jellyIntensity="medium"
           onClick={onOpenStudio}
           aria-label="Open Stamp Studio"
           className="font-control flex h-full w-full items-center justify-center rounded-full bg-white/15 text-[#0A0A0A] transition-colors hover:bg-white/30 focus-visible:outline-2 focus-visible:outline-[#0A0A0A]"
         >
           <Reicon name="plus" size={22} />
-        </motion.button>
+        </JellyButton>
       </GlassSurface>
     </nav>
   );
