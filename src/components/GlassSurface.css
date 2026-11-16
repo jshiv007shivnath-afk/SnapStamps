@@ -1,0 +1,142 @@
+.glass-surface {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity 0.26s ease-out;
+  box-shadow: none !important;
+}
+
+.glass-surface__filter {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  z-index: -1;
+}
+
+.glass-surface__content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: inherit;
+  position: relative;
+  z-index: 1;
+}
+
+.glass-surface--svg {
+  background: rgba(255, 255, 255, calc(0.42 + var(--glass-frost, 0) * 0.45));
+  -webkit-backdrop-filter: var(--filter-id, url(#glass-filter)) saturate(var(--glass-saturation, 1));
+  backdrop-filter: var(--filter-id, url(#glass-filter)) saturate(var(--glass-saturation, 1));
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: none !important;
+}
+
+.glass-surface--webgl {
+  background: rgba(255, 255, 255, calc(0.32 + var(--glass-frost, 0) * 0.45));
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: none !important;
+}
+
+.glass-surface__canvas,
+.glass-surface__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.glass-surface__frame {
+  background: rgba(255, 255, 255, calc(0.18 + var(--glass-frost, 0) * 0.4));
+  box-shadow: none !important;
+}
+
+.glass-surface--fallback {
+  background: rgba(255, 255, 255, calc(0.56 + var(--glass-frost, 0) * 0.35));
+  -webkit-backdrop-filter: blur(18px) saturate(calc(var(--glass-saturation, 1) * 1.4)) brightness(1.04);
+  backdrop-filter: blur(18px) saturate(calc(var(--glass-saturation, 1) * 1.4)) brightness(1.04);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: none !important;
+}
+
+.glass-surface__sheen,
+.glass-surface__rim {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.glass-surface__sheen {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    transparent 45%,
+    transparent 65%,
+    rgba(255, 255, 255, 0.22) 100%
+  );
+}
+
+.glass-surface__rim {
+  padding: 1.5px;
+  background: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(255, 255, 255, 0.16) 45%,
+    rgba(255, 255, 255, 0.1) 60%,
+    rgba(255, 255, 255, 0.48)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+
+.glass-surface__line,
+.glass-surface__glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+.glass-surface--svg .glass-surface__line,
+.glass-surface--webgl .glass-surface__line {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.glass-surface--svg .glass-surface__glow,
+.glass-surface--webgl .glass-surface__glow {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.glass-surface--fallback .glass-surface__line {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.glass-surface--fallback .glass-surface__glow {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-surface--fallback {
+    background: rgba(255, 255, 255, 0.88);
+  }
+}
+
+.glass-surface:focus-visible {
+  outline: 2px solid #0a0a0a;
+  outline-offset: 2px;
+}

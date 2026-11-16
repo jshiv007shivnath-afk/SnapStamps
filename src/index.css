@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-canvas: #f7f7f9;
+    --surface-card: #ffffff;
+    --ink-primary: #0a0a0a;
+    --ink-secondary: #6b7280;
+    --hairline: rgba(0, 0, 0, 0.06);
+
+    /* Locked SnapStamps Typography Tokens */
+    --font-hero: 'SF Pro Display', 'Inter', 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-title: 'SF Pro Text', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: 'Inter', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-control: 'SF Pro Text', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-stamp-title: 'Zilla Slab', 'Arvo', 'Rockwell', serif;
+    --font-stamp-condensed: 'Oswald', 'Barlow Condensed', sans-serif;
+  }
+
+  html,
+  body {
+    background-color: var(--bg-canvas);
+    color: var(--ink-primary);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-title,
+  .font-display {
+    font-family: var(--font-title);
+  }
+
+  .font-hero {
+    font-family: var(--font-hero);
+  }
+
+  .font-body {
+    font-family: var(--font-body);
+  }
+
+  button,
+  [role='tab'],
+  .font-control {
+    font-family: var(--font-control);
+  }
+
+  .font-stamp-title {
+    font-family: var(--font-stamp-title);
+    text-transform: uppercase;
+  }
+
+  .font-stamp-condensed {
+    font-family: var(--font-stamp-condensed);
+    text-transform: uppercase;
+  }
+
+  .font-mono-nums {
+    font-family: var(--font-body);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Strict zero-shadow and zero-black-border enforcement */
+.snap-no-shadow {
+  box-shadow: none !important;
+  filter: none;
+}
+
+/* Optical Liquid Glass button & surface styling (zero shadows, zero solid white fill) */
+.liquid-glass-btn {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.56) 0%,
+    rgba(255, 255, 255, 0.24) 55%,
+    rgba(255, 255, 255, 0.4) 100%
+  );
+  -webkit-backdrop-filter: blur(18px) saturate(185%);
+  backdrop-filter: blur(18px) saturate(185%);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow: none !important;
+  transition: background 180ms ease, transform 160ms ease, opacity 160ms ease;
+}
+
+.liquid-glass-btn:hover {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 255, 255, 0.36) 55%,
+    rgba(255, 255, 255, 0.54) 100%
+  );
+}
+
+.liquid-glass-btn-soft {
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.44) 0%,
+    rgba(235, 238, 245, 0.24) 100%
+  );
+  -webkit-backdrop-filter: blur(16px) saturate(175%);
+  backdrop-filter: blur(16px) saturate(175%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: none !important;
+  transition: background 180ms ease, transform 160ms ease;
+}
+
+.liquid-glass-btn-soft:hover {
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.62) 0%,
+    rgba(235, 238, 245, 0.38) 100%
+  );
+}
+
+/* Perforated postage stamp edge masks using non-overlapping additive layers */
+.stamp-perforated-x {
+  --tooth: 11px;
+  --hole: 3.5px;
+  -webkit-mask-image:
+    radial-gradient(circle at 0 50%, transparent var(--hole), #000 calc(var(--hole) + 0.6px)),
+    radial-gradient(circle at 100% 50%, transparent var(--hole), #000 calc(var(--hole) + 0.6px));
+  -webkit-mask-position: top left, top right;
+  -webkit-mask-size: 50.5% var(--tooth), 50.5% var(--tooth);
+  -webkit-mask-repeat: repeat-y, repeat-y;
+  -webkit-mask-composite: source-over;
+  mask-image:
+    radial-gradient(circle at 0 50%, transparent var(--hole), #000 calc(var(--hole) + 0.6px)),
+    radial-gradient(circle at 100% 50%, transparent var(--hole), #000 calc(var(--hole) + 0.6px));
+  mask-position: top left, top right;
+  mask-size: 50.5% var(--tooth), 50.5% var(--tooth);
+  mask-repeat: repeat-y, repeat-y;
+  mask-composite: add;
+}
+
+.stamp-perforated-y {
+  --tooth: 11px;
+  --hole: 3.5px;
+  -webkit-mask-image:
+    radial-gradient(circle at 50% 0, transparent var(--hole), #000 calc(var(--hole) + 0.6px)),
+    radial-gradient(circle at 50% 100%, transparent var(--hole), #000 calc(var(--hole) + 0.6px));
+  -webkit-mask-position: top left, bottom left;
+  -webkit-mask-size: var(--tooth) 50.5%, var(--tooth) 50.5%;
+  -webkit-mask-repeat: repeat-x, repeat-x;
+  -webkit-mask-composite: source-over;
+  mask-image:
+    radial-gradient(circle at 50% 0, transparent var(--hole), #000 calc(var(--hole) + 0.6px)),
+    radial-gradient(circle at 50% 100%, transparent var(--hole), #000 calc(var(--hole) + 0.6px));
+  mask-position: top left, bottom left;
+  mask-size: var(--tooth) 50.5%, var(--tooth) 50.5%;
+  mask-repeat: repeat-x, repeat-x;
+  mask-composite: add;
+}
+
+/* Safe area support for modern iOS viewports */
+.pb-safe-dock {
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
