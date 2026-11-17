@@ -21,6 +21,7 @@ interface MyStampsViewProps {
   onSelectStamp: (stamp: StampItem) => void;
   onToggleFavorite: (stampId: string) => void;
   onOpenStudio: () => void;
+  onOpenStore?: () => void;
 }
 
 const FILTER_TABS: Array<{ value: CollectionFilter; label: string }> = [
@@ -43,6 +44,7 @@ export function MyStampsView({
   onSelectStamp,
   onToggleFavorite,
   onOpenStudio,
+  onOpenStore,
 }: MyStampsViewProps) {
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -152,19 +154,34 @@ export function MyStampsView({
 
       {/* Stamp Grid (2 columns mobile matching Reference Screen 3, 3-4 columns desktop) */}
       {filteredStamps.length === 0 ? (
-        <div className="mt-8 rounded-[28px] bg-white p-10 text-center">
-          <p className="font-title text-base font-semibold text-[#0A0A0A]">No stamps match this filter</p>
-          <p className="font-body mt-1 text-sm text-neutral-500">
-            Unlock stamps from the Globe Map or craft a custom stamp in the studio.
+        <div className="liquid-glass-btn-soft mt-8 rounded-[28px] p-10 text-center">
+          <p className="font-title text-base font-semibold text-[#0A0A0A]">
+            {stamps.length === 0 ? 'Your stamp vault is ready' : 'No stamps match this filter'}
           </p>
-          <JellyButton
-            type="button"
-            jellyIntensity="medium"
-            onClick={onOpenStudio}
-            className="font-control mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#0A0A0A] px-6 text-sm font-medium text-white hover:bg-neutral-800"
-          >
-            Create Stamp
-          </JellyButton>
+          <p className="font-body mt-1 text-sm text-neutral-500">
+            Unlock Country or Sports Legend editions from the Store or craft a custom stamp.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+            {onOpenStore && (
+              <JellyButton
+                type="button"
+                jellyIntensity="medium"
+                onClick={onOpenStore}
+                className="liquid-glass-btn font-control inline-flex h-11 items-center justify-center gap-1.5 rounded-full px-6 text-sm font-medium text-[#0A0A0A]"
+              >
+                <Reicon name="store" size={16} />
+                <span>Browse Store</span>
+              </JellyButton>
+            )}
+            <JellyButton
+              type="button"
+              jellyIntensity="medium"
+              onClick={onOpenStudio}
+              className="font-control inline-flex h-11 items-center justify-center rounded-full bg-[#0A0A0A] px-6 text-sm font-medium text-white hover:bg-neutral-800"
+            >
+              Create Stamp
+            </JellyButton>
+          </div>
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-8">

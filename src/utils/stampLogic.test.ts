@@ -1,54 +1,70 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assignStampsToFolder,
   buildTravelArcs,
+  claimDailyTaskReward,
   clearDemoItems,
   collectStamp,
+  createCustomFolder,
+  evaluateDailyChallenges,
+  evaluateDailyMissions,
   filterStamps,
+  filterStoreStamps,
   getCollectionSummary,
+  getUnreadNotificationCount,
   haversineDistanceKm,
+  markAllNotificationsRead,
+  markNotificationRead,
+  purchaseStoreStamp,
   toggleStampFavorite,
 } from './stampLogic';
+import {
+  DEFAULT_NOTIFICATIONS,
+  DEFAULT_SETTINGS,
+  DEMO_POSTS,
+  DEMO_STAMPS,
+} from '../data/seedData';
 import type { SocialPost, StampItem, StampPocket } from '../types/stamp';
 
 const sampleStamps: StampItem[] = [
   {
-    id: 'madrid',
-    title: 'Madrid',
-    country: 'Spain',
-    city: 'Madrid',
-    category: 'city',
+    id: 'india-stamp',
+    title: 'India',
+    country: 'India',
+    city: 'Agra',
+    category: 'country',
     rarity: 'common',
-    collectedCount: 12,
-    totalInSet: 20,
+    collectedCount: 1,
+    totalInSet: 15,
     isFavorite: false,
     isUnlocked: true,
-    coordinates: { lat: 40.4168, lng: -3.7038 },
+    coordinates: { lat: 27.1751, lng: 78.0421 },
     imageUrl: '/a.jpg',
-    accentColor: '#F48A78',
-    bannerColor: '#D64527',
-    pocketId: 'cities',
-    description: 'Royal Palace',
-    isDemoSeed: true,
+    accentColor: '#F3BE7A',
+    bannerColor: '#B45309',
+    pocketId: 'countries',
+    description: 'Taj Mahal marble domes',
+    isDemoSeed: false,
   },
   {
-    id: 'ibiza',
-    title: 'Ibiza',
-    country: 'Spain',
-    city: 'Ibiza',
-    category: 'city',
+    id: 'switzerland-stamp',
+    title: 'Switzerland',
+    country: 'Switzerland',
+    city: 'Zermatt',
+    category: 'country',
     rarity: 'rare',
-    collectedCount: 14,
-    totalInSet: 20,
+    collectedCount: 1,
+    totalInSet: 12,
     isFavorite: true,
     isUnlocked: true,
-    coordinates: { lat: 38.9067, lng: 1.4206 },
+    coordinates: { lat: 46.0207, lng: 7.7491 },
     imageUrl: '/b.jpg',
-    accentColor: '#9ED6DC',
-    bannerColor: '#D64527',
-    pocketId: 'cities',
-    description: 'Whitewashed Cove',
-    isDemoSeed: true,
+    accentColor: '#E5957A',
+    bannerColor: '#991B1B',
+    pocketId: 'countries',
+    description: 'Glacier Express under the Matterhorn',
+    isDemoSeed: false,
   },
   {
     id: 'kyoto-custom',
@@ -72,18 +88,204 @@ const sampleStamps: StampItem[] = [
   },
 ];
 
+const sampleStoreCatalog: StampItem[] = [
+  {
+    id: 'store-switzerland',
+    title: 'Switzerland',
+    country: 'Switzerland',
+    city: 'Zermatt',
+    category: 'country',
+    rarity: 'rare',
+    collectedCount: 0,
+    totalInSet: 12,
+    isFavorite: false,
+    isUnlocked: false,
+    coordinates: { lat: 46.0207, lng: 7.7491 },
+    imageUrl: '/swiss.jpg',
+    accentColor: '#D97757',
+    bannerColor: '#991B1B',
+    pocketId: 'countries',
+    description: 'Matterhorn Alpine Express',
+    priceDiamonds: 220,
+  },
+  {
+    id: 'store-kohli',
+    title: 'Virat Kohli',
+    country: 'India',
+    city: 'Mumbai',
+    category: 'sports',
+    sportDiscipline: 'cricket',
+    athleteName: 'Virat Kohli',
+    celebrationLabel: 'Century Roar',
+    jerseyNumber: '18',
+    rarity: 'legendary',
+    collectedCount: 0,
+    totalInSet: 1,
+    isFavorite: false,
+    isUnlocked: false,
+    coordinates: { lat: 18.9389, lng: 72.8258 },
+    imageUrl: '/kohli.jpg',
+    accentColor: '#60A5FA',
+    bannerColor: '#1E3A8A',
+    pocketId: 'rare',
+    description: 'Iconic bat-raised roar under stadium floodlights.',
+    priceDiamonds: 550,
+  },
+  {
+    id: 'store-messi',
+    title: 'Lionel Messi',
+    country: 'Argentina',
+    city: 'Buenos Aires',
+    category: 'sports',
+    sportDiscipline: 'football',
+    athleteName: 'Lionel Messi',
+    celebrationLabel: 'Sky Tribute',
+    jerseyNumber: '10',
+    rarity: 'legendary',
+    collectedCount: 0,
+    totalInSet: 1,
+    isFavorite: false,
+    isUnlocked: false,
+    coordinates: { lat: -34.6037, lng: -58.3816 },
+    imageUrl: '/messi.jpg',
+    accentColor: '#7DD3FC',
+    bannerColor: '#0369A1',
+    pocketId: 'rare',
+    description: 'Two-finger skyward goal dedication.',
+    priceDiamonds: 600,
+  },
+];
+
+test('initial seed removes old pre-seeded travel stamps and posts', () => {
+  assert.equal(DEMO_STAMPS.length, 0);
+  assert.equal(DEMO_POSTS.length, 0);
+});
+
 test('filterStamps filters by favorites, rare, national, and search query', () => {
   assert.equal(filterStamps(sampleStamps, 'all', '').length, 3);
-  assert.equal(filterStamps(sampleStamps, 'favorites', '').map((s) => s.id).join(','), 'ibiza');
-  assert.equal(filterStamps(sampleStamps, 'rare', '').map((s) => s.id).join(','), 'ibiza,kyoto-custom');
-  assert.equal(filterStamps(sampleStamps, 'national', '').map((s) => s.id).join(','), 'madrid,ibiza');
+  assert.equal(filterStamps(sampleStamps, 'favorites', '').map((s) => s.id).join(','), 'switzerland-stamp');
+  assert.equal(filterStamps(sampleStamps, 'rare', '').map((s) => s.id).join(','), 'switzerland-stamp,kyoto-custom');
+  assert.equal(filterStamps(sampleStamps, 'national', '').map((s) => s.id).join(','), 'india-stamp,switzerland-stamp');
   assert.equal(filterStamps(sampleStamps, 'all', 'kyoto').map((s) => s.id).join(','), 'kyoto-custom');
 });
 
+test('filterStoreStamps separates country, cricket, and football legends cleanly', () => {
+  assert.equal(filterStoreStamps(sampleStoreCatalog, 'all', 'all', '').length, 3);
+  assert.equal(filterStoreStamps(sampleStoreCatalog, 'country', 'all', '').map((s) => s.id).join(','), 'store-switzerland');
+  assert.equal(filterStoreStamps(sampleStoreCatalog, 'sports', 'all', '').length, 2);
+  assert.equal(filterStoreStamps(sampleStoreCatalog, 'sports', 'cricket', '').map((s) => s.id).join(','), 'store-kohli');
+  assert.equal(filterStoreStamps(sampleStoreCatalog, 'sports', 'football', '').map((s) => s.id).join(','), 'store-messi');
+});
+
+test('purchaseStoreStamp deducts golden diamonds, assigns folder, and prevents double buy or overdraft', () => {
+  const buyKohli = purchaseStoreStamp(sampleStamps, sampleStoreCatalog[1], 1000, 'Nov 2026', 'folder-cricket');
+  assert.equal(buyKohli.success, true);
+  assert.equal(buyKohli.diamondBalance, 450);
+  const ownedKohli = buyKohli.stamps.find((s) => s.id === 'store-kohli');
+  assert.equal(ownedKohli?.isUnlocked, true);
+  assert.equal(ownedKohli?.pocketId, 'folder-cricket');
+  assert.equal(ownedKohli?.celebrationLabel, 'Century Roar');
+
+  const doubleBuy = purchaseStoreStamp(buyKohli.stamps, sampleStoreCatalog[1], buyKohli.diamondBalance);
+  assert.equal(doubleBuy.success, false);
+  assert.equal(doubleBuy.reason, 'already_owned');
+  assert.equal(doubleBuy.diamondBalance, 450);
+
+  const insufficient = purchaseStoreStamp(buyKohli.stamps, sampleStoreCatalog[2], 450);
+  assert.equal(insufficient.success, false);
+  assert.equal(insufficient.reason, 'insufficient_diamonds');
+  assert.equal(insufficient.diamondBalance, 450);
+});
+
+test('createCustomFolder and assignStampsToFolder organize stamps into custom folders', () => {
+  const basePockets: StampPocket[] = [
+    { id: 'countries', title: 'Countries', subtitle: 'National', tint: 'amber', category: 'country' },
+  ];
+  const created = createCustomFolder(basePockets, 'Cricket Vault', 'sky');
+  assert.equal(created.pocket.isCustomFolder, true);
+  assert.equal(created.pocket.title, 'Cricket Vault');
+  assert.equal(created.pockets.length, 2);
+
+  const reassigned = assignStampsToFolder(sampleStamps, ['india-stamp'], created.pocket.id);
+  assert.equal(reassigned.find((s) => s.id === 'india-stamp')?.pocketId, created.pocket.id);
+});
+
+test('Daily Missions and Daily Challenges evaluate progress and claim diamond rewards once', () => {
+  const customPockets: StampPocket[] = [
+    { id: 'folder-cricket', title: 'Cricket', subtitle: 'Custom', tint: 'sky', category: 'rare', isCustomFolder: true },
+  ];
+  const missions = evaluateDailyMissions({
+    stamps: sampleStamps,
+    pockets: customPockets,
+    claimedMissionIds: [],
+  });
+  const loginMission = missions.find((m) => m.id === 'mission-daily-login')!;
+  const favMission = missions.find((m) => m.id === 'mission-favorite-stamp')!;
+  assert.equal(loginMission.isComplete, true);
+  assert.equal(favMission.isComplete, true);
+
+  const claimLogin = claimDailyTaskReward({
+    task: loginMission,
+    claimedIds: [],
+    diamondBalance: 1500,
+  });
+  assert.equal(claimLogin.claimed, true);
+  assert.equal(claimLogin.diamondBalance, 1650);
+
+  const posts: SocialPost[] = [
+    {
+      id: 'user-post-1',
+      authorName: 'Leni Coper',
+      authorHandle: '@leni.passport',
+      authorInitials: 'LC',
+      authorTint: '#0A0A0A',
+      stampId: 'india-stamp',
+      caption: 'Unlocked India!',
+      locationLabel: 'Agra · India',
+      timestampLabel: 'Just now',
+      likesCount: 1,
+      isLiked: true,
+      isSaved: false,
+      isDemoSeed: false,
+    },
+  ];
+  const challenges = evaluateDailyChallenges({
+    stamps: sampleStamps,
+    posts,
+    claimedChallengeIds: [],
+  });
+  const collectChallenge = challenges.find((c) => c.id === 'challenge-collect-stamp')!;
+  const shareChallenge = challenges.find((c) => c.id === 'challenge-share-post')!;
+  assert.equal(collectChallenge.isComplete, true);
+  assert.equal(shareChallenge.isComplete, true);
+
+  const claimCollect = claimDailyTaskReward({
+    task: collectChallenge,
+    claimedIds: [],
+    diamondBalance: 1650,
+  });
+  assert.equal(claimCollect.claimed, true);
+  assert.equal(claimCollect.diamondBalance, 1850);
+
+  // Double-claim rejected
+  const updatedChallenges = evaluateDailyChallenges({
+    stamps: sampleStamps,
+    posts,
+    claimedChallengeIds: claimCollect.claimedIds,
+  });
+  const doubleClaim = claimDailyTaskReward({
+    task: updatedChallenges.find((c) => c.id === 'challenge-collect-stamp')!,
+    claimedIds: claimCollect.claimedIds,
+    diamondBalance: claimCollect.diamondBalance,
+  });
+  assert.equal(doubleClaim.claimed, false);
+  assert.equal(doubleClaim.diamondBalance, 1850);
+});
+
 test('toggleStampFavorite flips favorite flag deterministically', () => {
-  const toggled = toggleStampFavorite(sampleStamps, 'madrid');
-  assert.equal(toggled.find((s) => s.id === 'madrid')?.isFavorite, true);
-  assert.equal(toggled.find((s) => s.id === 'ibiza')?.isFavorite, true);
+  const toggled = toggleStampFavorite(sampleStamps, 'india-stamp');
+  assert.equal(toggled.find((s) => s.id === 'india-stamp')?.isFavorite, true);
+  assert.equal(toggled.find((s) => s.id === 'switzerland-stamp')?.isFavorite, true);
 });
 
 test('collectStamp unlocks locked stamp and increments collected count once', () => {
@@ -103,15 +305,15 @@ test('haversineDistanceKm and buildTravelArcs compute accurate routes', () => {
 
   const arcs = buildTravelArcs(sampleStamps);
   assert.equal(arcs.length, 1);
-  assert.equal(arcs[0].fromStampId, 'madrid');
-  assert.equal(arcs[0].toStampId, 'ibiza');
+  assert.equal(arcs[0].fromStampId, 'india-stamp');
+  assert.equal(arcs[0].toStampId, 'switzerland-stamp');
 });
 
 test('getCollectionSummary aggregates unlocked, countries, and rare counts', () => {
   const summary = getCollectionSummary(sampleStamps);
   assert.equal(summary.totalStamps, 3);
   assert.equal(summary.unlockedCount, 2);
-  assert.equal(summary.countriesCount, 1);
+  assert.equal(summary.countriesCount, 2);
   assert.equal(summary.rareCount, 1);
   assert.equal(summary.favoritesCount, 1);
 });
@@ -127,9 +329,9 @@ test('clearDemoItems strips seed stamps and posts while keeping user custom stam
       authorHandle: '@leni',
       authorInitials: 'LC',
       authorTint: '#F59E0B',
-      stampId: 'ibiza',
+      stampId: 'india-stamp',
       caption: 'Sunset!',
-      locationLabel: 'Ibiza · Spain',
+      locationLabel: 'Agra · India',
       timestampLabel: '2h ago',
       likesCount: 4,
       isLiked: false,
@@ -137,9 +339,29 @@ test('clearDemoItems strips seed stamps and posts while keeping user custom stam
       isDemoSeed: true,
     },
   ];
-  const cleared = clearDemoItems(sampleStamps, pockets, posts);
-  assert.equal(cleared.stamps.length, 1);
-  assert.equal(cleared.stamps[0].id, 'kyoto-custom');
+  const mixedStamps: StampItem[] = [
+    ...sampleStamps,
+    { ...sampleStamps[0], id: 'legacy-demo', isDemoSeed: true },
+  ];
+  const cleared = clearDemoItems(mixedStamps, pockets, posts);
+  assert.equal(cleared.stamps.length, 3);
   assert.equal(cleared.posts.length, 0);
   assert.equal(cleared.pockets.length, 1);
 });
+
+test('DEFAULT_NOTIFICATIONS and notification read helpers track unread counts', () => {
+  assert.ok(DEFAULT_NOTIFICATIONS.some((n) => n.category === 'release'));
+  assert.ok(DEFAULT_NOTIFICATIONS.some((n) => n.category === 'store'));
+  assert.ok(DEFAULT_NOTIFICATIONS.some((n) => n.category === 'event'));
+  assert.equal(DEFAULT_SETTINGS.hapticsEnabled, true);
+
+  const initialUnread = getUnreadNotificationCount(DEFAULT_NOTIFICATIONS);
+  assert.equal(initialUnread, DEFAULT_NOTIFICATIONS.length);
+
+  const oneRead = markNotificationRead(DEFAULT_NOTIFICATIONS, DEFAULT_NOTIFICATIONS[0].id);
+  assert.equal(getUnreadNotificationCount(oneRead), initialUnread - 1);
+
+  const allRead = markAllNotificationsRead(oneRead);
+  assert.equal(getUnreadNotificationCount(allRead), 0);
+});
+

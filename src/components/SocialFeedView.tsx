@@ -33,18 +33,20 @@ export function SocialFeedView({
   const [errorMsg, setErrorMsg] = useState('');
 
   const unlockedStamps = stamps.filter((s) => s.isUnlocked);
+  const activeSelectedStampId =
+    selectedStampId || unlockedStamps[0]?.id || stamps[0]?.id || '';
 
   const handlePublish = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStampId) {
-      setErrorMsg('Select a collected stamp to share.');
+    if (!activeSelectedStampId) {
+      setErrorMsg('Collect a stamp from Store or Studio first.');
       return;
     }
     if (!caption.trim()) {
       setErrorMsg('Write a short travel note about your find.');
       return;
     }
-    onCreatePost(selectedStampId, caption.trim());
+    onCreatePost(activeSelectedStampId, caption.trim());
     setCaption('');
     setErrorMsg('');
     setComposerOpen(false);
@@ -103,15 +105,19 @@ export function SocialFeedView({
               </label>
               <select
                 id="share-stamp-select"
-                value={selectedStampId}
+                value={activeSelectedStampId}
                 onChange={(e) => setSelectedStampId(e.target.value)}
                 className="mt-1.5 h-11 w-full rounded-xl bg-[#F7F7F9] px-3 text-sm font-medium text-[#0A0A0A] focus:outline-2 focus:outline-[#0A0A0A]"
               >
-                {(unlockedStamps.length > 0 ? unlockedStamps : stamps).map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.title} ({s.country})
-                  </option>
-                ))}
+                {unlockedStamps.length === 0 && stamps.length === 0 ? (
+                  <option value="">No collected stamps yet</option>
+                ) : (
+                  (unlockedStamps.length > 0 ? unlockedStamps : stamps).map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.title} ({s.country})
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 

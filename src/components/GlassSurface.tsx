@@ -529,16 +529,24 @@ export function GlassSurface({
   ]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const target = containerRef.current;
+    if (!target) return;
 
+    let rafId = 0;
     const resizeObserver = new ResizeObserver(() => {
-      const element = containerRef.current;
-      if (element) setBoxSize(`${element.offsetWidth}x${element.offsetHeight}`);
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const element = containerRef.current;
+        if (!element) return;
+        const next = `${element.offsetWidth}x${element.offsetHeight}`;
+        setBoxSize((prev) => (prev === next ? prev : next));
+      });
     });
 
-    resizeObserver.observe(containerRef.current);
+    resizeObserver.observe(target);
 
     return () => {
+      cancelAnimationFrame(rafId);
       resizeObserver.disconnect();
     };
   }, []);

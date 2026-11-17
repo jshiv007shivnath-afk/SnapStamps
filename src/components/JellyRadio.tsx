@@ -115,10 +115,8 @@ export function JellyRadio({
   );
   const [inner, setInner] = useState<string | undefined>(() => defaultValue ?? list[0]?.value);
   const current = value ?? inner;
-  const at = Math.max(
-    0,
-    list.findIndex((it) => it.value === current)
-  );
+  const rawAt = list.findIndex((it) => it.value === current);
+  const at = value !== undefined ? rawAt : Math.max(0, rawAt);
   const reduce = useReducedMotion();
   const groupRef = useRef<HTMLDivElement | null>(null);
   const chipRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -163,14 +161,15 @@ export function JellyRadio({
     const C = cfg.current;
     const group = groupRef.current;
     const rtl = group ? getComputedStyle(group).direction === 'rtl' : false;
-    const push = ((widths.current[sel] ?? 0) * C.swell) / 2 + C.barge;
+    const hasSel = sel >= 0 && sel < C.count;
+    const push = hasSel ? ((widths.current[sel] ?? 0) * C.swell) / 2 + C.barge : 0;
     for (let i = 0; i < C.count; i++) {
       const mv = mvFor(i);
-      const on = i === sel;
-      const far = Math.abs(i - sel);
-      const dir = Math.sign(i - sel) * (rtl ? -1 : 1);
+      const on = hasSel && i === sel;
+      const far = hasSel ? Math.abs(i - sel) : 0;
+      const dir = hasSel ? Math.sign(i - sel) * (rtl ? -1 : 1) : 0;
       const x = dir * push;
-      const s = on ? 1 + C.swell : 1 - C.shrink;
+      const s = !hasSel ? 1 : on ? 1 + C.swell : 1 - C.shrink;
       if (instant || C.reduce) {
         mv.x.jump(x);
         mv.sx.jump(s);
@@ -199,20 +198,37 @@ export function JellyRadio({
     widths.current = chipRefs.current.map((el) => el?.offsetWidth ?? 0);
     const chipH = chipRefs.current[0]?.offsetHeight ?? 0;
     const maxW = Math.max(0, ...widths.current);
-    group.style.setProperty('--jr-pad-x', `${Math.ceil((maxW * swell * 1.3) / 2 + barge) + 4}px`);
-    group.style.setProperty('--jr-pad-y', `${Math.ceil((chipH * swell) / 2) + 2}px`);
+    const nextPadX = `${Math.ceil((maxW * swell * 1.3) / 2 + barge) + 4}px`;
+    const nextPadY = `${Math.ceil((chipH * swell) / 2) + 2}px`;
+    if (group.style.getPropertyValue('--jr-pad-x') !== nextPadX) {
+      group.style.setProperty('--jr-pad-x', nextPadX);
+    }
+    if (group.style.getPropertyValue('--jr-pad-y') !== nextPadY) {
+      group.style.setProperty('--jr-pad-y', nextPadY);
+    }
   };
 
   useLayoutEffect(() => {
+    let rafId = 0;
+    let disposed = false;
     const settle = () => {
+      if (disposed) return;
       measure();
       apply(applied.current, true);
     };
+    const scheduleSettle = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(settle);
+    };
     settle();
-    const observer = new ResizeObserver(settle);
+    const observer = new ResizeObserver(scheduleSettle);
     if (groupRef.current) observer.observe(groupRef.current);
-    document.fonts?.ready.then(settle);
-    return () => observer.disconnect();
+    document.fonts?.ready.then(scheduleSettle);
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
   }, [itemsKey, size, gap, swell, barge, shrink]);
 
   useEffect(() => {

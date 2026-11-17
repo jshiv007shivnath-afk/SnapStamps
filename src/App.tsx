@@ -1,32 +1,58 @@
 import { useEffect, useState } from 'react';
-import { DEMO_POCKETS, DEMO_POSTS, DEMO_STAMPS } from './data/seedData';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import {
+  DEFAULT_NOTIFICATIONS,
+  DEFAULT_SETTINGS,
+  DEMO_POCKETS,
+  DEMO_POSTS,
+  DEMO_STAMPS,
+  ONBOARDING_SHOWCASE_STAMPS,
+} from './data/seedData';
 import type {
+  AppNotification,
+  AppSettings,
   AppTab,
   CollectionFilter,
+  DailyTaskStatus,
   PlaceCandidate,
+  PocketTint,
   SocialPost,
   StampItem,
   StampPocket,
   UserProfile,
 } from './types/stamp';
+import { initCapacitorMobile, triggerHapticImpact } from './utils/capacitorBridge';
 import {
-  clearDemoItems,
+  assignStampsToFolder,
+  claimDailyTaskReward,
   collectStamp,
+  createCustomFolder,
+  evaluateDailyChallenges,
+  getTodayDateKey,
+  getUnreadNotificationCount,
+  markAllNotificationsRead,
+  markNotificationRead,
+  purchaseStoreStamp,
   toggleStampFavorite,
 } from './utils/stampLogic';
 import { BottomDock } from './components/BottomDock';
+import { CreateFolderModal } from './components/CreateFolderModal';
 import { GlobeMapView } from './components/GlobeMapView';
 import { LoginView } from './components/LoginView';
 import { MyStampsView } from './components/MyStampsView';
+import { NotificationsView } from './components/NotificationsView';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { ProfileView } from './components/ProfileView';
+import { SelectFolderModal } from './components/SelectFolderModal';
+import { SettingsView } from './components/SettingsView';
 import { SocialFeedView } from './components/SocialFeedView';
 import { StampDetailModal } from './components/StampDetailModal';
 import { StampLibraryView } from './components/StampLibraryView';
 import { StampStudioModal } from './components/StampStudioModal';
-import { SwiftUIExportDrawer } from './components/SwiftUIExportDrawer';
+import { StoreView } from './components/StoreView';
 
-const STORAGE_KEY = 'snapstamps_state_v2';
+const STORAGE_KEY = 'snapstamps_state_v3';
+const INITIAL_DIAMOND_BALANCE = 1500;
 
 const DEFAULT_PROFILE: UserProfile = {
   name: 'Leni Coper',
@@ -44,38 +70,57 @@ interface PersistedState {
   stamps: StampItem[];
   pockets: StampPocket[];
   posts: SocialPost[];
+  diamondBalance: number;
+  dailyDateKey: string;
+  claimedChallengeIds: string[];
+  notifications: AppNotification[];
+  settings: AppSettings;
 }
 
 function loadInitialState(): PersistedState {
+  const todayKey = getTodayDateKey();
   const autostart =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('autostart') === '1';
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY) || window.localStorage.getItem('snapstamps_state_v1');
+    const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<PersistedState>;
-      if (Array.isArray(parsed.stamps) && Array.isArray(parsed.pockets) && Array.isArray(parsed.posts)) {
-        const seedById = new Map(DEMO_STAMPS.map((s) => [s.id, s]));
-        const syncedStamps = parsed.stamps.map((s) => {
-          const seed = seedById.get(s.id);
-          if (seed && s.isDemoSeed && !s.isCustomGenerated) {
-            return { ...s, imageUrl: seed.imageUrl };
-          }
-          return s;
-        });
+      if (
+        Array.isArray(parsed.stamps) &&
+        Array.isArray(parsed.pockets) &&
+        Array.isArray(parsed.posts)
+      ) {
+        const sameDay = parsed.dailyDateKey === todayKey;
         return {
           hasOnboarded: autostart ? true : Boolean(parsed.hasOnboarded),
-          isAuthenticated: autostart ? true : parsed.isAuthenticated ?? Boolean(parsed.hasOnboarded),
+          isAuthenticated: autostart
+            ? true
+            : parsed.isAuthenticated ?? Boolean(parsed.hasOnboarded),
           userProfile: parsed.userProfile ?? DEFAULT_PROFILE,
-          stamps: syncedStamps,
-          pockets: parsed.pockets,
+          stamps: parsed.stamps,
+          pockets: parsed.pockets.length > 0 ? parsed.pockets : DEMO_POCKETS,
           posts: parsed.posts,
+          diamondBalance:
+            typeof parsed.diamondBalance === 'number'
+              ? parsed.diamondBalance
+              : INITIAL_DIAMOND_BALANCE,
+          dailyDateKey: todayKey,
+          claimedChallengeIds:
+            sameDay && Array.isArray(parsed.claimedChallengeIds)
+              ? parsed.claimedChallengeIds
+              : [],
+          notifications:
+            Array.isArray(parsed.notifications) && parsed.notifications.length > 0
+              ? parsed.notifications
+              : DEFAULT_NOTIFICATIONS,
+          settings: parsed.settings ? { ...DEFAULT_SETTINGS, ...parsed.settings } : DEFAULT_SETTINGS,
         };
       }
     }
   } catch {
-    // Fall back to demo seed state
+    // Fall back to fresh clean state
   }
 
   return {
@@ -85,19 +130,37 @@ function loadInitialState(): PersistedState {
     stamps: DEMO_STAMPS,
     pockets: DEMO_POCKETS,
     posts: DEMO_POSTS,
+    diamondBalance: INITIAL_DIAMOND_BALANCE,
+    dailyDateKey: todayKey,
+    claimedChallengeIds: [],
+    notifications: DEFAULT_NOTIFICATIONS,
+    settings: DEFAULT_SETTINGS,
   };
 }
 
 export default function App() {
+  const shouldReduceMotion = useReducedMotion();
   const [initial] = useState<PersistedState>(() => loadInitialState());
   const [hasOnboarded, setHasOnboarded] = useState<boolean>(initial.hasOnboarded);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(initial.isAuthenticated);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
+    initial.isAuthenticated
+  );
   const [showLoginScreen, setShowLoginScreen] = useState<boolean>(false);
   const [userProfile, setUserProfile] = useState<UserProfile>(initial.userProfile);
   const [activeTab, setActiveTab] = useState<AppTab>('library');
   const [stamps, setStamps] = useState<StampItem[]>(initial.stamps);
   const [pockets, setPockets] = useState<StampPocket[]>(initial.pockets);
   const [posts, setPosts] = useState<SocialPost[]>(initial.posts);
+  const [diamondBalance, setDiamondBalance] = useState<number>(
+    initial.diamondBalance
+  );
+  const [claimedChallengeIds, setClaimedChallengeIds] = useState<string[]>(
+    initial.claimedChallengeIds
+  );
+  const [notifications, setNotifications] = useState<AppNotification[]>(
+    initial.notifications
+  );
+  const [settings, setSettings] = useState<AppSettings>(initial.settings);
 
   // Filters & search
   const [activeFilter, setActiveFilter] = useState<CollectionFilter>('all');
@@ -107,20 +170,35 @@ export default function App() {
 
   // Modals & Inspector state
   const [selectedStampId, setSelectedStampId] = useState<string | null>(null);
-  const [focusedGlobeStampId, setFocusedGlobeStampId] = useState<string | null>(null);
+  const [focusedGlobeStampId, setFocusedGlobeStampId] = useState<string | null>(
+    null
+  );
   const [studioOpen, setStudioOpen] = useState(false);
   const [studioPocketId, setStudioPocketId] = useState<string | null>(null);
   const [studioEditStamp, setStudioEditStamp] = useState<StampItem | null>(null);
-  const [swiftDrawerOpen, setSwiftDrawerOpen] = useState(false);
+
+  // Folder creation & post-purchase folder selection modals
+  const [createFolderOpen, setCreateFolderOpen] = useState(false);
+  const [pendingFolderStamp, setPendingFolderStamp] = useState<StampItem | null>(null);
 
   // Google Maps Platform Demo Key Quota Banner State
   const [gmpQuotaExceeded, setGmpQuotaExceeded] = useState(false);
 
+  const playHaptic = (level: 'light' | 'medium' | 'heavy' = 'light') => {
+    if (!settings.hapticsEnabled) return;
+    void triggerHapticImpact(level);
+  };
+
   useEffect(() => {
+    void initCapacitorMobile();
     const onQuotaExceeded = () => setGmpQuotaExceeded(true);
     window.addEventListener('gmp-quota-exceeded', onQuotaExceeded);
     return () => window.removeEventListener('gmp-quota-exceeded', onQuotaExceeded);
   }, []);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, [activeTab, isAuthenticated, hasOnboarded, showLoginScreen]);
 
   useEffect(() => {
     try {
@@ -131,22 +209,114 @@ export default function App() {
         stamps,
         pockets,
         posts,
+        diamondBalance,
+        dailyDateKey: getTodayDateKey(),
+        claimedChallengeIds,
+        notifications,
+        settings,
       };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch {
       // Ignore storage quota issues
     }
-  }, [hasOnboarded, isAuthenticated, userProfile, stamps, pockets, posts]);
+  }, [
+    hasOnboarded,
+    isAuthenticated,
+    userProfile,
+    stamps,
+    pockets,
+    posts,
+    diamondBalance,
+    claimedChallengeIds,
+    notifications,
+    settings,
+  ]);
 
   const selectedStamp = stamps.find((s) => s.id === selectedStampId) ?? null;
-  const hasDemoData = stamps.some((s) => s.isDemoSeed) || posts.some((p) => p.isDemoSeed);
+  const unreadNotificationsCount = getUnreadNotificationCount(notifications);
+
+  const dailyChallenges = evaluateDailyChallenges({
+    stamps,
+    posts,
+    claimedChallengeIds,
+  });
 
   const handleToggleFavorite = (stampId: string) => {
+    playHaptic('light');
     setStamps((prev) => toggleStampFavorite(prev, stampId));
   };
 
   const handleCollectStamp = (stampId: string) => {
+    playHaptic('medium');
     setStamps((prev) => collectStamp(prev, stampId, 'Nov 2026'));
+  };
+
+  const handleBuyStoreStamp = (storeStamp: StampItem) => {
+    const result = purchaseStoreStamp(
+      stamps,
+      storeStamp,
+      diamondBalance,
+      'Nov 2026'
+    );
+    if (result.success && result.purchasedStamp) {
+      playHaptic('medium');
+      setStamps(result.stamps);
+      setDiamondBalance(result.diamondBalance);
+      setPendingFolderStamp(result.purchasedStamp);
+    }
+    return { success: result.success, reason: result.reason };
+  };
+
+  const handleCreateFolder = ({
+    title,
+    tint,
+    initialStampIds,
+  }: {
+    title: string;
+    tint: PocketTint;
+    initialStampIds: string[];
+  }) => {
+    playHaptic('light');
+    const created = createCustomFolder(pockets, title, tint);
+    setPockets(created.pockets);
+    if (initialStampIds.length > 0) {
+      setStamps((prev) =>
+        assignStampsToFolder(prev, initialStampIds, created.pocket.id)
+      );
+    }
+  };
+
+  const handleSelectFolderForPurchasedStamp = (pocketId: string) => {
+    if (!pendingFolderStamp) return;
+    playHaptic('light');
+    setStamps((prev) =>
+      assignStampsToFolder(prev, [pendingFolderStamp.id], pocketId)
+    );
+    setPendingFolderStamp(null);
+  };
+
+  const handleCreateAndSelectFolder = (title: string, tint: PocketTint) => {
+    if (!pendingFolderStamp) return;
+    playHaptic('medium');
+    const created = createCustomFolder(pockets, title, tint);
+    setPockets(created.pockets);
+    setStamps((prev) =>
+      assignStampsToFolder(prev, [pendingFolderStamp.id], created.pocket.id)
+    );
+    setPendingFolderStamp(null);
+  };
+
+  const handleClaimChallenge = (challenge: DailyTaskStatus) => {
+    const result = claimDailyTaskReward({
+      task: challenge,
+      claimedIds: claimedChallengeIds,
+      diamondBalance,
+    });
+    if (result.claimed) {
+      playHaptic('medium');
+      setClaimedChallengeIds(result.claimedIds);
+      setDiamondBalance(result.diamondBalance);
+    }
   };
 
   const handleAddPlaceAsStamp = (place: PlaceCandidate) => {
@@ -162,10 +332,10 @@ export default function App() {
       isFavorite: false,
       isUnlocked: true,
       coordinates: { lat: place.lat, lng: place.lng },
-      imageUrl: DEMO_STAMPS[0]?.imageUrl || '',
+      imageUrl: ONBOARDING_SHOWCASE_STAMPS[0]?.imageUrl || '',
       accentColor: '#98D4DC',
       bannerColor: '#0E7490',
-      pocketId: 'landmarks',
+      pocketId: pockets[0]?.id || 'landmarks',
       description: `${place.categoryLabel} discovered via Google Maps at ${place.address}.`,
       unlockedAt: 'Nov 2026',
       isDemoSeed: false,
@@ -178,6 +348,7 @@ export default function App() {
   };
 
   const handleSaveNewStamp = (newStamp: StampItem) => {
+    playHaptic('medium');
     setStamps((prev) => [newStamp, ...prev]);
     setActiveTab('stamps');
     setActivePocketId(newStamp.pocketId);
@@ -187,12 +358,15 @@ export default function App() {
   const handleUpdateStampArt = (stampId: string, newImageUrl: string) => {
     setStamps((prev) =>
       prev.map((s) =>
-        s.id === stampId ? { ...s, imageUrl: newImageUrl, isCustomGenerated: true } : s
+        s.id === stampId
+          ? { ...s, imageUrl: newImageUrl, isCustomGenerated: true }
+          : s
       )
     );
   };
 
   const handleTogglePostLike = (postId: string) => {
+    playHaptic('light');
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId
@@ -207,12 +381,16 @@ export default function App() {
   };
 
   const handleTogglePostSave = (postId: string) => {
-    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, isSaved: !p.isSaved } : p)));
+    playHaptic('light');
+    setPosts((prev) =>
+      prev.map((p) => (p.id === postId ? { ...p, isSaved: !p.isSaved } : p))
+    );
   };
 
   const handleCreatePost = (stampId: string, caption: string) => {
     const stamp = stamps.find((s) => s.id === stampId);
     if (!stamp) return;
+    playHaptic('medium');
     const post: SocialPost = {
       id: `post-${Date.now()}`,
       authorName: userProfile.name,
@@ -232,18 +410,27 @@ export default function App() {
     setActiveTab('feed');
   };
 
-  const handleClearDemoData = () => {
-    const cleaned = clearDemoItems(stamps, pockets, posts);
-    setStamps(cleaned.stamps);
-    setPockets(cleaned.pockets);
-    setPosts(cleaned.posts);
-  };
+  const pageTransition = shouldReduceMotion
+    ? { initial: { opacity: 1 }, animate: { opacity: 1 }, exit: { opacity: 1 }, transition: { duration: 0 } }
+    : {
+        initial: { opacity: 0, y: 12, scale: 0.99 },
+        animate: { opacity: 1, y: 0, scale: 1 },
+        exit: { opacity: 0, y: -8, scale: 0.99 },
+        transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
+      };
 
-  const handleRestoreDemoData = () => {
-    setStamps(DEMO_STAMPS);
-    setPockets(DEMO_POCKETS);
-    setPosts(DEMO_POSTS);
-  };
+  const screenKey = !isAuthenticated || showLoginScreen
+    ? 'screen-login'
+    : !hasOnboarded
+      ? 'screen-onboarding'
+      : `screen-${activeTab}`;
+
+  const dockActiveTab: AppTab =
+    activeTab === 'globe'
+      ? 'profile'
+      : activeTab === 'notifications' || activeTab === 'settings'
+        ? 'library'
+        : activeTab;
 
   return (
     <div className="min-h-screen bg-[#F7F7F9] text-[#0A0A0A]">
@@ -264,127 +451,185 @@ export default function App() {
         </div>
       )}
 
-      {!isAuthenticated || showLoginScreen ? (
-        <LoginView
-          defaultProfile={userProfile}
-          onAuthenticated={(nextProfile) => {
-            setUserProfile(nextProfile);
-            setIsAuthenticated(true);
-            setShowLoginScreen(false);
-            setActiveTab('library');
-          }}
-          onContinueGoogle={() => {
-            setIsAuthenticated(true);
-            setShowLoginScreen(false);
-            setActiveTab('library');
-          }}
-        />
-      ) : !hasOnboarded ? (
-        <OnboardingScreen
-          featuredStamps={stamps}
-          onGetStarted={() => {
-            setHasOnboarded(true);
-          }}
-        />
-      ) : (
-        <main className="min-h-screen">
-          {activeTab === 'library' && (
-            <StampLibraryView
-              pockets={pockets}
-              stamps={stamps}
-              userProfile={userProfile}
-              searchQuery={librarySearch}
-              onSearchChange={setLibrarySearch}
-              onOpenPocket={(pocketId) => {
-                setActivePocketId(pocketId);
-                setActiveFilter('all');
-                setActiveTab('stamps');
+      <AnimatePresence mode="wait">
+        {!isAuthenticated || showLoginScreen ? (
+          <motion.div key={screenKey} {...pageTransition}>
+            <LoginView
+              defaultProfile={userProfile}
+              onAuthenticated={(nextProfile) => {
+                setUserProfile(nextProfile);
+                setIsAuthenticated(true);
+                setShowLoginScreen(false);
+                setActiveTab('library');
               }}
-              onQuickAddToPocket={(pocketId) => {
-                setStudioPocketId(pocketId);
-                setStudioEditStamp(null);
-                setStudioOpen(true);
-              }}
-              onSelectStamp={(s) => setSelectedStampId(s.id)}
-              onOpenSwiftUIExport={() => setSwiftDrawerOpen(true)}
-              onOpenProfile={() => setActiveTab('profile')}
-            />
-          )}
-
-          {activeTab === 'stamps' && (
-            <MyStampsView
-              stamps={stamps}
-              pockets={pockets}
-              activeFilter={activeFilter}
-              activePocketId={activePocketId}
-              searchQuery={stampsSearch}
-              onFilterChange={setActiveFilter}
-              onClearPocketFilter={() => setActivePocketId(null)}
-              onSearchChange={setStampsSearch}
-              onBack={() => setActiveTab('library')}
-              onSelectStamp={(s) => setSelectedStampId(s.id)}
-              onToggleFavorite={handleToggleFavorite}
-              onOpenStudio={() => {
-                setStudioPocketId(activePocketId);
-                setStudioEditStamp(null);
-                setStudioOpen(true);
+              onContinueGoogle={() => {
+                setIsAuthenticated(true);
+                setShowLoginScreen(false);
+                setActiveTab('library');
               }}
             />
-          )}
-
-          {activeTab === 'feed' && (
-            <SocialFeedView
-              posts={posts}
-              stamps={stamps}
-              onBack={() => setActiveTab('library')}
-              onToggleLike={handleTogglePostLike}
-              onToggleSave={handleTogglePostSave}
-              onSelectStamp={(s) => setSelectedStampId(s.id)}
-              onCreatePost={handleCreatePost}
-            />
-          )}
-
-          {activeTab === 'profile' && (
-            <ProfileView
-              profile={userProfile}
-              stamps={stamps}
-              postsCount={posts.length}
-              onBack={() => setActiveTab('library')}
-              onUpdateProfile={setUserProfile}
-              onSelectStamp={(s) => setSelectedStampId(s.id)}
-              onOpenGlobe={() => setActiveTab('globe')}
-              onOpenSwiftUIExport={() => setSwiftDrawerOpen(true)}
-              onSignOut={() => {
-                setIsAuthenticated(false);
-                setShowLoginScreen(true);
+          </motion.div>
+        ) : !hasOnboarded ? (
+          <motion.div key={screenKey} {...pageTransition}>
+            <OnboardingScreen
+              featuredStamps={
+                stamps.length >= 2 ? stamps : ONBOARDING_SHOWCASE_STAMPS
+              }
+              onGetStarted={() => {
+                setHasOnboarded(true);
               }}
             />
-          )}
+          </motion.div>
+        ) : (
+          <main className="min-h-screen">
+            <AnimatePresence mode="wait">
+              <motion.div key={screenKey} {...pageTransition}>
+                {activeTab === 'library' && (
+                  <StampLibraryView
+                    pockets={pockets}
+                    stamps={stamps}
+                    userProfile={userProfile}
+                    unreadNotificationsCount={unreadNotificationsCount}
+                    searchQuery={librarySearch}
+                    onSearchChange={setLibrarySearch}
+                    onOpenPocket={(pocketId) => {
+                      setActivePocketId(pocketId);
+                      setActiveFilter('all');
+                      setActiveTab('stamps');
+                    }}
+                    onQuickAddToPocket={(pocketId) => {
+                      setStudioPocketId(pocketId);
+                      setStudioEditStamp(null);
+                      setStudioOpen(true);
+                    }}
+                    onOpenCreateFolder={() => setCreateFolderOpen(true)}
+                    onOpenNotifications={() => setActiveTab('notifications')}
+                    onOpenSettings={() => setActiveTab('settings')}
+                    onSelectStamp={(s) => setSelectedStampId(s.id)}
+                    onOpenProfile={() => setActiveTab('profile')}
+                  />
+                )}
 
-          {activeTab === 'globe' && (
-            <GlobeMapView
-              stamps={stamps}
-              focusedStampId={focusedGlobeStampId}
-              onBack={() => setActiveTab('profile')}
-              onSelectStamp={(s) => setSelectedStampId(s.id)}
-              onCollectStamp={handleCollectStamp}
-              onAddPlaceAsStamp={handleAddPlaceAsStamp}
-            />
-          )}
+                {activeTab === 'stamps' && (
+                  <MyStampsView
+                    stamps={stamps}
+                    pockets={pockets}
+                    activeFilter={activeFilter}
+                    activePocketId={activePocketId}
+                    searchQuery={stampsSearch}
+                    onFilterChange={setActiveFilter}
+                    onClearPocketFilter={() => setActivePocketId(null)}
+                    onSearchChange={setStampsSearch}
+                    onBack={() => setActiveTab('library')}
+                    onSelectStamp={(s) => setSelectedStampId(s.id)}
+                    onToggleFavorite={handleToggleFavorite}
+                    onOpenStudio={() => {
+                      setStudioPocketId(activePocketId);
+                      setStudioEditStamp(null);
+                      setStudioOpen(true);
+                    }}
+                    onOpenStore={() => setActiveTab('store')}
+                  />
+                )}
 
-          {activeTab !== 'stamps' && (
-            <BottomDock
-              activeTab={activeTab === 'globe' ? 'profile' : activeTab}
-              onTabChange={setActiveTab}
-              onOpenStudio={() => {
-                setStudioPocketId(activePocketId);
-                setStudioEditStamp(null);
-                setStudioOpen(true);
-              }}
-            />
-          )}
-        </main>
-      )}
+                {activeTab === 'feed' && (
+                  <SocialFeedView
+                    posts={posts}
+                    stamps={stamps}
+                    onBack={() => setActiveTab('library')}
+                    onToggleLike={handleTogglePostLike}
+                    onToggleSave={handleTogglePostSave}
+                    onSelectStamp={(s) => setSelectedStampId(s.id)}
+                    onCreatePost={handleCreatePost}
+                  />
+                )}
+
+                {activeTab === 'store' && (
+                  <StoreView
+                    stamps={stamps}
+                    diamondBalance={diamondBalance}
+                    onBack={() => setActiveTab('library')}
+                    onBuyStamp={handleBuyStoreStamp}
+                    onSelectStamp={(s) => setSelectedStampId(s.id)}
+                  />
+                )}
+
+                {activeTab === 'notifications' && (
+                  <NotificationsView
+                    notifications={notifications}
+                    onBack={() => setActiveTab('library')}
+                    onMarkRead={(id) => setNotifications((prev) => markNotificationRead(prev, id))}
+                    onMarkAllRead={() => setNotifications((prev) => markAllNotificationsRead(prev))}
+                    onNavigateTab={(tab) => setActiveTab(tab)}
+                  />
+                )}
+
+                {activeTab === 'settings' && (
+                  <SettingsView
+                    settings={settings}
+                    userProfile={userProfile}
+                    foldersCount={pockets.length}
+                    stampsCount={stamps.filter((s) => s.isUnlocked).length}
+                    onBack={() => setActiveTab('library')}
+                    onUpdateSettings={setSettings}
+                    onOpenProfile={() => setActiveTab('profile')}
+                    onOpenNotifications={() => setActiveTab('notifications')}
+                    onSignOut={() => {
+                      setIsAuthenticated(false);
+                      setShowLoginScreen(true);
+                    }}
+                  />
+                )}
+
+                {activeTab === 'profile' && (
+                  <ProfileView
+                    profile={userProfile}
+                    stamps={stamps}
+                    postsCount={posts.length}
+                    diamondBalance={diamondBalance}
+                    dailyChallenges={dailyChallenges}
+                    onBack={() => setActiveTab('library')}
+                    onUpdateProfile={setUserProfile}
+                    onSelectStamp={(s) => setSelectedStampId(s.id)}
+                    onClaimChallenge={handleClaimChallenge}
+                    onOpenGlobe={() => setActiveTab('globe')}
+                    onOpenStore={() => setActiveTab('store')}
+                    onSignOut={() => {
+                      setIsAuthenticated(false);
+                      setShowLoginScreen(true);
+                    }}
+                  />
+                )}
+
+                {activeTab === 'globe' && (
+                  <GlobeMapView
+                    stamps={stamps}
+                    focusedStampId={focusedGlobeStampId}
+                    onBack={() => setActiveTab('profile')}
+                    onSelectStamp={(s) => setSelectedStampId(s.id)}
+                    onCollectStamp={handleCollectStamp}
+                    onAddPlaceAsStamp={handleAddPlaceAsStamp}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {activeTab !== 'stamps' && (
+              <BottomDock
+                activeTab={dockActiveTab}
+                onTabChange={(nextTab) => {
+                  playHaptic('light');
+                  setActiveTab(nextTab);
+                }}
+                onOpenStore={() => {
+                  playHaptic('light');
+                  setActiveTab('store');
+                }}
+              />
+            )}
+          </main>
+        )}
+      </AnimatePresence>
 
       <StampDetailModal
         stamp={selectedStamp}
@@ -403,7 +648,10 @@ export default function App() {
         }}
         onShareToFeed={(s) => {
           setSelectedStampId(null);
-          handleCreatePost(s.id, `Added ${s.title} (${s.country}) to my SnapStamps passport!`);
+          handleCreatePost(
+            s.id,
+            `Added ${s.title} (${s.country}) to my SnapStamps passport!`
+          );
         }}
       />
 
@@ -422,12 +670,20 @@ export default function App() {
         onUpdateStampArt={handleUpdateStampArt}
       />
 
-      <SwiftUIExportDrawer
-        isOpen={swiftDrawerOpen}
-        hasDemoData={hasDemoData}
-        onClose={() => setSwiftDrawerOpen(false)}
-        onClearDemoData={handleClearDemoData}
-        onRestoreDemoData={handleRestoreDemoData}
+      <CreateFolderModal
+        isOpen={createFolderOpen}
+        stamps={stamps}
+        onClose={() => setCreateFolderOpen(false)}
+        onCreateFolder={handleCreateFolder}
+      />
+
+      <SelectFolderModal
+        stamp={pendingFolderStamp}
+        pockets={pockets}
+        stamps={stamps}
+        onClose={() => setPendingFolderStamp(null)}
+        onSelectFolder={handleSelectFolderForPurchasedStamp}
+        onCreateAndSelectFolder={handleCreateAndSelectFolder}
       />
     </div>
   );

@@ -17,14 +17,33 @@
     --font-stamp-condensed: 'Oswald', 'Barlow Condensed', sans-serif;
   }
 
-  html,
+  html {
+    background-color: var(--bg-canvas);
+    overflow-x: clip;
+    overflow-y: auto;
+    height: auto;
+  }
+
   body {
     background-color: var(--bg-canvas);
     color: var(--ink-primary);
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: clip;
+    min-height: 100%;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   h1,
@@ -99,12 +118,12 @@
 .liquid-glass-btn-soft {
   background: linear-gradient(
     155deg,
-    rgba(255, 255, 255, 0.44) 0%,
-    rgba(235, 238, 245, 0.24) 100%
+    rgba(239, 242, 248, 0.72) 0%,
+    rgba(226, 231, 240, 0.42) 100%
   );
   -webkit-backdrop-filter: blur(16px) saturate(175%);
   backdrop-filter: blur(16px) saturate(175%);
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.82);
   box-shadow: none !important;
   transition: background 180ms ease, opacity 160ms ease;
 }
@@ -112,8 +131,8 @@
 .liquid-glass-btn-soft:hover {
   background: linear-gradient(
     155deg,
-    rgba(255, 255, 255, 0.62) 0%,
-    rgba(235, 238, 245, 0.38) 100%
+    rgba(244, 246, 251, 0.84) 0%,
+    rgba(230, 235, 244, 0.54) 100%
   );
 }
 

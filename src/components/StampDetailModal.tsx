@@ -31,13 +31,13 @@ export function StampDetailModal({
       role="dialog"
       aria-modal="true"
       aria-label={`${stamp.title} stamp details`}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 backdrop-blur-xs sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs sm:p-6"
     >
       <motion.div
-        initial={{ y: 28, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+        initial={{ y: 24, opacity: 0, scale: 0.96 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-        className="w-full max-w-md rounded-t-[28px] bg-[#F7F7F9] p-6 sm:rounded-[28px]"
+        className="no-scrollbar max-h-[86dvh] w-full max-w-md overflow-y-auto overflow-x-hidden rounded-[28px] border border-black/8 bg-white p-6"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -66,6 +66,11 @@ export function StampDetailModal({
 
         <div className="mt-5 text-center">
           <h2 className="font-display text-2xl font-bold text-[#0A0A0A]">{stamp.title}</h2>
+          {stamp.celebrationLabel && (
+            <p className="font-title mt-0.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+              {stamp.celebrationLabel} · {stamp.sportDiscipline === 'cricket' ? 'Cricket Legend' : 'Football Legend'} #{stamp.jerseyNumber}
+            </p>
+          )}
           <p className="mt-1 text-sm text-neutral-600">{stamp.description}</p>
           <p className="font-mono-nums mt-2 text-xs text-neutral-500">
             Set Progress {stamp.collectedCount}/{stamp.totalInSet} · {stamp.coordinates.lat.toFixed(2)}°,{' '}

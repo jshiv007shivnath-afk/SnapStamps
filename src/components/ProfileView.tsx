@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import type { StampItem, UserProfile } from '../types/stamp';
+import type { DailyTaskStatus, StampItem, UserProfile } from '../types/stamp';
 import { getCollectionSummary } from '../utils/stampLogic';
 import { AppLogo } from './AppLogo';
 import { BackButton } from './BackButton';
+import { DiamondBalanceBadge } from './DiamondBalanceBadge';
+import { DiamondIcon } from './DiamondIcon';
 import { JellyButton } from './JellyButton';
 import { PerforatedStampCard } from './PerforatedStampCard';
 import { Reicon } from './Reicon';
@@ -12,11 +14,14 @@ interface ProfileViewProps {
   profile: UserProfile;
   stamps: StampItem[];
   postsCount: number;
+  diamondBalance: number;
+  dailyChallenges: DailyTaskStatus[];
   onBack: () => void;
   onUpdateProfile: (next: UserProfile) => void;
   onSelectStamp: (stamp: StampItem) => void;
+  onClaimChallenge: (challenge: DailyTaskStatus) => void;
   onOpenGlobe: () => void;
-  onOpenSwiftUIExport: () => void;
+  onOpenStore: () => void;
   onSignOut: () => void;
 }
 
@@ -24,11 +29,14 @@ export function ProfileView({
   profile,
   stamps,
   postsCount,
+  diamondBalance,
+  dailyChallenges,
   onBack,
   onUpdateProfile,
   onSelectStamp,
+  onClaimChallenge,
   onOpenGlobe,
-  onOpenSwiftUIExport,
+  onOpenStore,
   onSignOut,
 }: ProfileViewProps) {
   const [editing, setEditing] = useState(false);
@@ -58,11 +66,12 @@ export function ProfileView({
       setErrorMsg('Please enter your traveler name.');
       return;
     }
-    const initials = trimmedName
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() || '')
-      .join('') || 'LC';
+    const initials =
+      trimmedName
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() || '')
+        .join('') || 'LC';
 
     const cleanHandle = handleInput.trim().startsWith('@')
       ? handleInput.trim()
@@ -81,7 +90,7 @@ export function ProfileView({
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 pb-32 pt-4 sm:px-8">
-      {/* Top Bar with black circular BackButton + Title */}
+      {/* Top Bar with black circular BackButton + Pulsing Diamond Balance + Edit */}
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <BackButton onClick={onBack} ariaLabel="Back to Stamp Library" />
@@ -94,6 +103,13 @@ export function ProfileView({
         </div>
 
         <div className="flex items-center gap-2">
+          <DiamondBalanceBadge
+            balance={diamondBalance}
+            onClick={onOpenStore}
+            testId="profile-diamond-balance"
+            ariaLabel={`SnapStamps Store · ${diamondBalance.toLocaleString()} Diamonds`}
+          />
+
           <JellyButton
             type="button"
             onClick={() => {
@@ -106,15 +122,6 @@ export function ProfileView({
           >
             <Reicon name={editing ? 'close' : 'user'} size={16} />
             <span>{editing ? 'Cancel' : 'Edit'}</span>
-          </JellyButton>
-
-          <JellyButton
-            type="button"
-            onClick={onOpenSwiftUIExport}
-            aria-label="Open SwiftUI and data utilities"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0A0A0A] text-white transition-colors hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-[#0A0A0A]"
-          >
-            <Reicon name="code" size={18} />
           </JellyButton>
         </div>
       </header>
@@ -237,7 +244,119 @@ export function ProfileView({
         </div>
       </section>
 
-      {/* Quick Actions: Atlas Map & SwiftUI Export */}
+      {/* Daily Challenges Module with Liquid-Glass Progress Bars & Golden Diamond Rewards */}
+      <section aria-label="Daily Challenges" className="liquid-glass-btn-soft mt-5 rounded-[28px] p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FEF3C7] text-[#B45309]">
+              <Reicon name="flame" size={18} />
+            </span>
+            <div>
+              <h2 className="font-title text-[17px] font-semibold text-[#0A0A0A]">
+                Daily Challenges
+              </h2>
+              <p className="font-body text-[12px] text-neutral-500">
+                Track daily milestones and claim golden-yellow Diamonds
+              </p>
+            </div>
+          </div>
+
+          <span className="font-mono-nums rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-[#0A0A0A]">
+            {dailyChallenges.filter((c) => c.isClaimed).length}/{dailyChallenges.length}
+          </span>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {dailyChallenges.map((challenge) => {
+            const pct = Math.min(100, Math.round((challenge.progress / challenge.target) * 100));
+            const canClaim = challenge.isComplete && !challenge.isClaimed;
+            return (
+              <div
+                key={challenge.id}
+                className="liquid-glass-btn rounded-[20px] p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-title text-[14px] font-semibold text-[#0A0A0A]">
+                        {challenge.title}
+                      </p>
+                      <span className="font-mono-nums inline-flex items-center gap-1 rounded-full bg-[#FEF3C7]/90 px-2.5 py-0.5 text-[11px] font-semibold text-[#B45309]">
+                        <DiamondIcon size={12} />+{challenge.rewardDiamonds}
+                      </span>
+                    </div>
+                    <p className="font-body mt-0.5 text-[12px] text-neutral-500">
+                      {challenge.description}
+                    </p>
+                  </div>
+
+                  <JellyButton
+                    type="button"
+                    jellyIntensity={canClaim ? 'medium' : 'soft'}
+                    disabled={!canClaim}
+                    onClick={() => onClaimChallenge(challenge)}
+                    aria-label={
+                      challenge.isClaimed
+                        ? `${challenge.title} claimed`
+                        : canClaim
+                          ? `Claim ${challenge.rewardDiamonds} diamonds for ${challenge.title}`
+                          : `${challenge.title} in progress`
+                    }
+                    className={`font-control flex h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-[12px] font-semibold transition-colors ${
+                      challenge.isClaimed
+                        ? 'bg-white/60 text-neutral-400 cursor-default'
+                        : canClaim
+                          ? 'bg-[#0A0A0A] text-white hover:bg-neutral-800'
+                          : 'bg-white/60 text-neutral-500 cursor-default'
+                    }`}
+                  >
+                    {challenge.isClaimed ? (
+                      <>
+                        <Reicon name="check" size={14} />
+                        <span>Claimed</span>
+                      </>
+                    ) : canClaim ? (
+                      <span>Claim Reward</span>
+                    ) : (
+                      <span>In Progress</span>
+                    )}
+                  </JellyButton>
+                </div>
+
+                {/* Liquid-Glass Progress Bar */}
+                <div className="mt-3 flex items-center gap-3">
+                  <div
+                    role="progressbar"
+                    aria-valuenow={challenge.progress}
+                    aria-valuemin={0}
+                    aria-valuemax={challenge.target}
+                    aria-label={`${challenge.title} progress`}
+                    className="liquid-glass-btn-soft relative h-3 flex-1 overflow-hidden rounded-full p-[1.5px]"
+                  >
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ type: 'spring', stiffness: 220, damping: 26 }}
+                      className="h-full rounded-full"
+                      style={{
+                        background:
+                          pct >= 100
+                            ? 'linear-gradient(90deg, #FACC15 0%, #F59E0B 100%)'
+                            : 'linear-gradient(90deg, #FDE047 0%, #FACC15 100%)',
+                      }}
+                    />
+                  </div>
+                  <span className="font-mono-nums shrink-0 text-[11px] font-semibold text-neutral-600">
+                    {challenge.progress}/{challenge.target}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Quick Actions: Atlas Map & Stamp Store */}
       <section className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <JellyButton
           type="button"
@@ -262,23 +381,26 @@ export function ProfileView({
 
         <JellyButton
           type="button"
-          onClick={onOpenSwiftUIExport}
+          onClick={onOpenStore}
           className="liquid-glass-btn flex h-14 items-center justify-between rounded-[24px] px-5 text-left focus-visible:outline-2 focus-visible:outline-[#0A0A0A]"
         >
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E9DEC9] text-[#0A0A0A]">
-              <Reicon name="code" size={18} />
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFFDF7] text-[#0A0A0A]">
+              <Reicon name="store" size={18} />
             </span>
             <div>
               <p className="font-title text-[15px] font-medium text-[#0A0A0A]">
-                SwiftUI Code &amp; Demo Controls
+                Stamp Store
               </p>
               <p className="font-body text-[12px] text-neutral-500">
-                Export views or clear seed data
+                Unlock Country &amp; Sports editions
               </p>
             </div>
           </div>
-          <Reicon name="download" size={18} color="#0A0A0A" />
+          <span className="flex items-center gap-1 font-mono-nums text-[13px] font-semibold text-[#0A0A0A]">
+            <DiamondIcon size={15} />
+            {diamondBalance.toLocaleString()}
+          </span>
         </JellyButton>
       </section>
 
@@ -287,27 +409,33 @@ export function ProfileView({
         <h2 className="font-title text-[17px] font-semibold text-[#0A0A0A]">
           Country Milestones
         </h2>
-        <div className="mt-4 space-y-3.5">
-          {countryProgress.map(([countryName, counts]) => {
-            const pct = counts.total > 0 ? Math.round((counts.unlocked / counts.total) * 100) : 0;
-            return (
-              <div key={countryName}>
-                <div className="flex items-baseline justify-between text-[13px]">
-                  <span className="font-title font-medium text-[#0A0A0A]">{countryName}</span>
-                  <span className="font-mono-nums text-xs text-neutral-500">
-                    {counts.unlocked}/{counts.total}
-                  </span>
+        {countryProgress.length === 0 ? (
+          <p className="font-body mt-2 text-xs text-neutral-500">
+            Unlock stamps from the Store to track country completion milestones here.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-3.5">
+            {countryProgress.map(([countryName, counts]) => {
+              const pct = counts.total > 0 ? Math.round((counts.unlocked / counts.total) * 100) : 0;
+              return (
+                <div key={countryName}>
+                  <div className="flex items-baseline justify-between text-[13px]">
+                    <span className="font-title font-medium text-[#0A0A0A]">{countryName}</span>
+                    <span className="font-mono-nums text-xs text-neutral-500">
+                      {counts.unlocked}/{counts.total}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-black/5">
+                    <div
+                      className="h-full rounded-full bg-[#0A0A0A] transition-all duration-300"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-black/5">
-                  <div
-                    className="h-full rounded-full bg-[#0A0A0A] transition-all duration-300"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Favorite Stamps Strip */}

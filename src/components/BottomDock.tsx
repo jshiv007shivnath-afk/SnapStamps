@@ -7,11 +7,11 @@ import { Reicon, type ReiconName } from './Reicon';
 interface BottomDockProps {
   activeTab: AppTab;
   onTabChange: (tab: AppTab) => void;
-  onOpenStudio: () => void;
+  onOpenStore: () => void;
 }
 
-// Navigation order matched strictly to reference image:
-// 1. Library (Home) | 2. My Stamps (Frame) | 3. Rare Finds Feed (Chat) | 4. Profile (User)
+// Navigation order matched to user design:
+// 1. Library (Home) | 2. My Stamps (Frame) | 3. Rare Finds Feed (Chat) | 4. Profile (User) + Right Circle: Store
 const DOCK_ITEMS: Array<{ id: AppTab; label: string; icon: ReiconName }> = [
   { id: 'library', label: 'Library', icon: 'home' },
   { id: 'stamps', label: 'My Stamps', icon: 'frame' },
@@ -19,7 +19,10 @@ const DOCK_ITEMS: Array<{ id: AppTab; label: string; icon: ReiconName }> = [
   { id: 'profile', label: 'Profile', icon: 'user' },
 ];
 
-export function BottomDock({ activeTab, onTabChange, onOpenStudio }: BottomDockProps) {
+export function BottomDock({ activeTab, onTabChange, onOpenStore }: BottomDockProps) {
+  const isStoreActive = activeTab === 'store';
+  const radioValue = isStoreActive ? '__none__' : activeTab;
+
   const radioItems = DOCK_ITEMS.map((item) => {
     const isActive = activeTab === item.id;
     return {
@@ -56,7 +59,7 @@ export function BottomDock({ activeTab, onTabChange, onOpenStudio }: BottomDockP
       >
         <JellyRadio
           items={radioItems}
-          value={activeTab}
+          value={radioValue}
           onChange={(nextValue) => onTabChange(nextValue as AppTab)}
           chipColor="rgba(255, 255, 255, 0.34)"
           activeColor="#0A0A0A"
@@ -77,7 +80,7 @@ export function BottomDock({ activeTab, onTabChange, onOpenStudio }: BottomDockP
         />
       </GlassSurface>
 
-      {/* Separate Circular GlassSurface '+' Stamp Studio Button with Soft Jelly Bounce */}
+      {/* Separate Circular GlassSurface Store Button replacing '+' */}
       <GlassSurface
         width={58}
         height={58}
@@ -94,11 +97,20 @@ export function BottomDock({ activeTab, onTabChange, onOpenStudio }: BottomDockP
         <JellyButton
           type="button"
           jellyIntensity="medium"
-          onClick={onOpenStudio}
-          aria-label="Open Stamp Studio"
-          className="font-control flex h-full w-full items-center justify-center rounded-full bg-white/15 text-[#0A0A0A] transition-colors hover:bg-white/30 focus-visible:outline-2 focus-visible:outline-[#0A0A0A]"
+          onClick={onOpenStore}
+          aria-label="Open Stamp Store"
+          aria-current={isStoreActive ? 'page' : undefined}
+          className={`font-control flex h-full w-full items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-[#0A0A0A] ${
+            isStoreActive
+              ? 'bg-[#0A0A0A] text-white'
+              : 'bg-white/15 text-[#0A0A0A] hover:bg-white/30'
+          }`}
         >
-          <Reicon name="plus" size={22} />
+          <Reicon
+            name="store"
+            size={21}
+            weight={isStoreActive ? 'Filled' : 'Outline'}
+          />
         </JellyButton>
       </GlassSurface>
     </nav>

@@ -1,8 +1,20 @@
-export type AppTab = 'library' | 'stamps' | 'feed' | 'profile' | 'globe';
+export type AppTab =
+  | 'library'
+  | 'stamps'
+  | 'feed'
+  | 'profile'
+  | 'globe'
+  | 'store'
+  | 'notifications'
+  | 'settings';
 
 export type CollectionFilter = 'all' | 'national' | 'favorites' | 'rare';
 
-export type StampCategory = 'country' | 'city' | 'landmark';
+export type StoreSectionFilter = 'all' | 'country' | 'sports';
+
+export type SportDisciplineFilter = 'all' | 'cricket' | 'football';
+
+export type StampCategory = 'country' | 'city' | 'landmark' | 'sports';
 
 export type StampRarity = 'common' | 'rare' | 'legendary';
 
@@ -42,6 +54,12 @@ export interface StampItem {
   unlockedAt?: string;
   isCustomGenerated?: boolean;
   isDemoSeed?: boolean;
+  // Store & Sports Legend collector fields
+  sportDiscipline?: 'cricket' | 'football';
+  athleteName?: string;
+  celebrationLabel?: string;
+  jerseyNumber?: string;
+  priceDiamonds?: number;
 }
 
 export interface StampPocket {
@@ -51,6 +69,7 @@ export interface StampPocket {
   tint: PocketTint;
   category: StampCategory | 'rare';
   isDemoSeed?: boolean;
+  isCustomFolder?: boolean;
 }
 
 export interface TravelArc {
@@ -84,4 +103,35 @@ export interface PlaceCandidate {
   lat: number;
   lng: number;
   categoryLabel: string;
+}
+
+export interface DailyTaskStatus {
+  id: string;
+  title: string;
+  description: string;
+  rewardDiamonds: number;
+  progress: number;
+  target: number;
+  isComplete: boolean;
+  isClaimed: boolean;
+}
+
+export type NotificationCategory = 'release' | 'store' | 'event' | 'system';
+
+export interface AppNotification {
+  id: string;
+  category: NotificationCategory;
+  title: string;
+  message: string;
+  timestampLabel: string;
+  isRead: boolean;
+  actionLabel?: string;
+  targetTab?: AppTab;
+}
+
+export interface AppSettings {
+  hapticsEnabled: boolean;
+  releaseAlerts: boolean;
+  storeDropAlerts: boolean;
+  eventAlerts: boolean;
 }

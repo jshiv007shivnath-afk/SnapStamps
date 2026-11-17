@@ -197,16 +197,18 @@ export function StampStudioModal({
       role="dialog"
       aria-modal="true"
       aria-label="Stamp Studio"
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 backdrop-blur-xs sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-xs sm:p-6"
+      onClick={onClose}
     >
       <motion.div
-        initial={{ y: 32, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+        initial={{ y: 24, opacity: 0, scale: 0.96 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 360, damping: 28 }}
-        className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-[28px] bg-[#F7F7F9] p-6 sm:rounded-[28px]"
+        onClick={(e) => e.stopPropagation()}
+        className="no-scrollbar max-h-[86dvh] w-full max-w-2xl overflow-y-auto overflow-x-hidden rounded-[28px] border border-black/8 bg-white p-5 sm:p-6"
       >
         <div className="flex items-center justify-between gap-4">
-          <div>
+          <div className="text-left">
             <p className="text-xs font-medium text-neutral-500">Gemini Nano Banana 2.1</p>
             <h2 className="font-display text-xl font-bold text-[#0A0A0A]">Stamp Studio</h2>
           </div>
@@ -214,25 +216,25 @@ export function StampStudioModal({
             type="button"
             onClick={onClose}
             aria-label="Close Stamp Studio"
-            className="liquid-glass-btn flex h-11 w-11 items-center justify-center rounded-full text-[#0A0A0A]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F5F5F7] text-[#0A0A0A] hover:bg-neutral-200"
           >
             <Reicon name="close" size={20} />
           </JellyButton>
         </div>
 
-        {/* Create vs Edit Segmented Toggle with JellyRadio */}
-        <div className="mt-4 flex justify-start">
+        {/* Create vs Edit Segmented Toggle — sized cleanly to never clip on 390px screens */}
+        <div className="no-scrollbar mt-4 flex max-w-full justify-start overflow-x-auto">
           <JellyRadio
             items={[
               {
                 value: 'create',
-                label: 'Create New Stamp',
-                icon: <Reicon name="image-sparkle" size={16} />,
+                label: 'Create Stamp',
+                icon: <Reicon name="image-sparkle" size={15} />,
               },
               {
                 value: 'edit',
-                label: 'Edit Existing Art',
-                icon: <Reicon name="wand" size={16} />,
+                label: 'Edit Art',
+                icon: <Reicon name="wand" size={15} />,
               },
             ]}
             value={mode}
@@ -244,16 +246,16 @@ export function StampStudioModal({
                 setPreviewUrl(targetEditStamp.imageUrl);
               }
             }}
-            chipColor="rgba(255, 255, 255, 0.5)"
+            chipColor="#F5F5F7"
             activeColor="#0A0A0A"
             textColor="#0A0A0A"
             activeTextColor="#FFFFFF"
-            size="md"
+            size="sm"
             gap={8}
             radius={20}
-            swell={0.07}
-            barge={3}
-            shrink={0.03}
+            swell={0.06}
+            barge={2}
+            shrink={0.02}
             jelly={0.9}
             bounce={0.34}
             ariaLabel="Stamp studio mode"
@@ -276,7 +278,7 @@ export function StampStudioModal({
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="e.g., Lisbon"
-                      className="mt-1 h-11 w-full rounded-xl bg-white px-3 text-sm text-[#0A0A0A] focus:outline-2 focus:outline-[#0A0A0A]"
+                      className="mt-1 h-11 w-full rounded-xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A] focus:outline-2 focus:outline-[#0A0A0A]"
                     />
                   </div>
                   <div>
@@ -289,7 +291,7 @@ export function StampStudioModal({
                       value={country}
                       onChange={(e) => setCountry(e.target.value)}
                       placeholder="e.g., Portugal"
-                      className="mt-1 h-11 w-full rounded-xl bg-white px-3 text-sm text-[#0A0A0A] focus:outline-2 focus:outline-[#0A0A0A]"
+                      className="mt-1 h-11 w-full rounded-xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A] focus:outline-2 focus:outline-[#0A0A0A]"
                     />
                   </div>
                 </div>
@@ -303,7 +305,7 @@ export function StampStudioModal({
                       id="studio-pocket"
                       value={pocketId}
                       onChange={(e) => setPocketId(e.target.value)}
-                      className="mt-1 h-11 w-full rounded-xl bg-white px-3 text-sm text-[#0A0A0A]"
+                      className="mt-1 h-11 w-full rounded-xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A]"
                     >
                       {pockets.map((p) => (
                         <option key={p.id} value={p.id}>
@@ -320,7 +322,7 @@ export function StampStudioModal({
                       id="studio-category"
                       value={category}
                       onChange={(e) => setCategory(e.target.value as StampCategory)}
-                      className="mt-1 h-11 w-full rounded-xl bg-white px-3 text-sm text-[#0A0A0A]"
+                      className="mt-1 h-11 w-full rounded-xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A]"
                     >
                       <option value="city">City</option>
                       <option value="country">Country</option>
@@ -337,7 +339,7 @@ export function StampStudioModal({
                     id="studio-style"
                     value={stylePreset}
                     onChange={(e) => setStylePreset(e.target.value)}
-                    className="mt-1 h-11 w-full rounded-xl bg-white px-3 text-sm text-[#0A0A0A]"
+                    className="mt-1 h-11 w-full rounded-xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A]"
                   >
                     {STYLE_PRESETS.map((preset) => (
                       <option key={preset} value={preset}>
@@ -361,7 +363,7 @@ export function StampStudioModal({
                     const found = stamps.find((s) => s.id === nextId);
                     if (found) setPreviewUrl(found.imageUrl);
                   }}
-                  className="mt-1 h-11 w-full rounded-xl bg-white px-3 text-sm text-[#0A0A0A]"
+                  className="mt-1 h-11 w-full rounded-xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A]"
                 >
                   {stamps.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -386,7 +388,7 @@ export function StampStudioModal({
                     ? 'Terracotta rooftops, yellow tram climbing a sunlit hill, coastal bay...'
                     : 'Add warm golden hour sky and autumn trees around the monument...'
                 }
-                className="mt-1 w-full rounded-2xl bg-white p-3 text-sm text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-2 focus:outline-[#0A0A0A]"
+                className="mt-1 w-full rounded-2xl bg-[#F5F5F7] p-3 text-sm text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-2 focus:outline-[#0A0A0A]"
               />
             </div>
 
@@ -427,7 +429,7 @@ export function StampStudioModal({
           </div>
 
           {/* Right Live Perforated Stamp Preview */}
-          <div className="flex flex-col items-center justify-between rounded-[24px] bg-white p-4 sm:col-span-5">
+          <div className="flex flex-col items-center justify-between rounded-[24px] bg-[#F5F5F7] p-4 sm:col-span-5">
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
               Live Stamp Proof
             </p>

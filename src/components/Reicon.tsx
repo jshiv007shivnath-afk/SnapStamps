@@ -1,27 +1,41 @@
 import {
   ArrowLeft,
+  Award,
+  BagShopping,
   Bell,
   Bookmark,
   ChatRoundLine,
   Check,
   CloseCircle,
-  Code,
   Compass,
   Copy,
+  Crown,
+  CupTrophy,
+  Diamonds,
   Download,
   FilterSearch,
+  Flame,
+  Folder,
+  FolderCheck,
+  FolderOpen,
+  FolderPlus,
+  Football,
+  Gift,
   Globe,
   Heart,
   Home2,
   ImageSparkle,
   Map,
   MapPoint,
+  Notification,
   Pin,
   Plus,
   Refresh,
   Search,
   Send,
+  Setting2,
   Share,
+  Sparkles,
   Star,
   TicketStar,
   Trash,
@@ -35,9 +49,16 @@ export type ReiconName =
   | 'frame'
   | 'chat'
   | 'user'
+  | 'store'
+  | 'diamond'
+  | 'trophy'
+  | 'football'
+  | 'crown'
   | 'plus'
   | 'search'
   | 'bell'
+  | 'notification'
+  | 'settings'
   | 'arrow-left'
   | 'heart'
   | 'star'
@@ -47,7 +68,6 @@ export type ReiconName =
   | 'compass'
   | 'wand'
   | 'image-sparkle'
-  | 'code'
   | 'copy'
   | 'download'
   | 'trash'
@@ -58,16 +78,31 @@ export type ReiconName =
   | 'refresh'
   | 'send'
   | 'filter'
-  | 'pin';
+  | 'pin'
+  | 'folder'
+  | 'folder-plus'
+  | 'folder-open'
+  | 'folder-check'
+  | 'sparkles'
+  | 'award'
+  | 'gift'
+  | 'flame';
 
 const ICON_MAP = {
   home: Home2,
   frame: TicketStar,
   chat: ChatRoundLine,
   user: User,
+  store: BagShopping,
+  diamond: Diamonds,
+  trophy: CupTrophy,
+  football: Football,
+  crown: Crown,
   plus: Plus,
   search: Search,
   bell: Bell,
+  notification: Notification,
+  settings: Setting2,
   'arrow-left': ArrowLeft,
   heart: Heart,
   star: Star,
@@ -77,7 +112,6 @@ const ICON_MAP = {
   compass: Compass,
   wand: WandSparkle,
   'image-sparkle': ImageSparkle,
-  code: Code,
   copy: Copy,
   download: Download,
   trash: Trash,
@@ -89,6 +123,14 @@ const ICON_MAP = {
   send: Send,
   filter: FilterSearch,
   pin: Pin,
+  folder: Folder,
+  'folder-plus': FolderPlus,
+  'folder-open': FolderOpen,
+  'folder-check': FolderCheck,
+  sparkles: Sparkles,
+  award: Award,
+  gift: Gift,
+  flame: Flame,
 };
 
 interface ReiconProps {
