@@ -197,7 +197,7 @@ export function StampStudioModal({
       role="dialog"
       aria-modal="true"
       aria-label="Stamp Studio"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-xs sm:p-6"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 p-4 backdrop-blur-xs overscroll-none sm:p-6"
       onClick={onClose}
     >
       <motion.div
@@ -205,7 +205,7 @@ export function StampStudioModal({
         animate={{ y: 0, opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 360, damping: 28 }}
         onClick={(e) => e.stopPropagation()}
-        className="no-scrollbar max-h-[86dvh] w-full max-w-2xl overflow-y-auto overflow-x-hidden rounded-[28px] border border-black/8 bg-white p-5 sm:p-6"
+        className="no-scrollbar max-h-[86dvh] w-full max-w-2xl overflow-y-auto overflow-x-hidden overscroll-none rounded-[24px] border border-black/8 bg-white p-5 sm:p-6"
       >
         <div className="flex items-center justify-between gap-4">
           <div className="text-left">
@@ -223,7 +223,7 @@ export function StampStudioModal({
         </div>
 
         {/* Create vs Edit Segmented Toggle — sized cleanly to never clip on 390px screens */}
-        <div className="no-scrollbar mt-4 flex max-w-full justify-start overflow-x-auto">
+        <div className="no-scrollbar mt-4 flex max-w-full justify-start overflow-x-auto overscroll-none">
           <JellyRadio
             items={[
               {
@@ -278,7 +278,7 @@ export function StampStudioModal({
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="e.g., Lisbon"
-                      className="mt-1 h-11 w-full rounded-xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A] focus:outline-2 focus:outline-[#0A0A0A]"
+                      className="mt-1 h-11 w-full rounded-2xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A] focus:outline-2 focus:outline-[#0A0A0A]"
                     />
                   </div>
                   <div>
@@ -291,7 +291,7 @@ export function StampStudioModal({
                       value={country}
                       onChange={(e) => setCountry(e.target.value)}
                       placeholder="e.g., Portugal"
-                      className="mt-1 h-11 w-full rounded-xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A] focus:outline-2 focus:outline-[#0A0A0A]"
+                      className="mt-1 h-11 w-full rounded-2xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A] focus:outline-2 focus:outline-[#0A0A0A]"
                     />
                   </div>
                 </div>
@@ -305,7 +305,7 @@ export function StampStudioModal({
                       id="studio-pocket"
                       value={pocketId}
                       onChange={(e) => setPocketId(e.target.value)}
-                      className="mt-1 h-11 w-full rounded-xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A]"
+                      className="mt-1 h-11 w-full rounded-2xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A]"
                     >
                       {pockets.map((p) => (
                         <option key={p.id} value={p.id}>
@@ -322,7 +322,7 @@ export function StampStudioModal({
                       id="studio-category"
                       value={category}
                       onChange={(e) => setCategory(e.target.value as StampCategory)}
-                      className="mt-1 h-11 w-full rounded-xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A]"
+                      className="mt-1 h-11 w-full rounded-2xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A]"
                     >
                       <option value="city">City</option>
                       <option value="country">Country</option>
@@ -339,7 +339,7 @@ export function StampStudioModal({
                     id="studio-style"
                     value={stylePreset}
                     onChange={(e) => setStylePreset(e.target.value)}
-                    className="mt-1 h-11 w-full rounded-xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A]"
+                    className="mt-1 h-11 w-full rounded-2xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A]"
                   >
                     {STYLE_PRESETS.map((preset) => (
                       <option key={preset} value={preset}>
@@ -363,7 +363,7 @@ export function StampStudioModal({
                     const found = stamps.find((s) => s.id === nextId);
                     if (found) setPreviewUrl(found.imageUrl);
                   }}
-                  className="mt-1 h-11 w-full rounded-xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A]"
+                  className="mt-1 h-11 w-full rounded-2xl bg-[#F5F5F7] px-3 text-sm text-[#0A0A0A]"
                 >
                   {stamps.map((s) => (
                     <option key={s.id} value={s.id}>

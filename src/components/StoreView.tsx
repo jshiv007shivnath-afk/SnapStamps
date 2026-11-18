@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import type {
   SportDisciplineFilter,
   StampItem,
@@ -99,7 +99,8 @@ export function StoreView({
     return (
       <div
         key={item.id}
-        className="liquid-glass-btn-soft flex flex-col justify-between rounded-[24px] p-3 sm:p-3.5"
+        style={{ contentVisibility: 'auto', containIntrinsicSize: '260px 340px' }}
+        className="liquid-glass-btn-soft flex flex-col justify-between rounded-[24px] p-2.5 sm:p-3"
       >
         <div>
           <PerforatedStampCard
@@ -159,20 +160,20 @@ export function StoreView({
   return (
     <div className="mx-auto w-full max-w-5xl px-5 pb-36 pt-4 sm:px-8">
       {/* Top Bar: Black Circular BackButton + Title + Golden Diamond Balance Pill + Search */}
-      <header className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <header className="flex items-center justify-between gap-2.5">
+        <div className="flex min-w-0 items-center gap-3">
           <BackButton onClick={onBack} ariaLabel="Back to Stamp Library" />
-          <div>
-            <p className="font-body text-[12px] font-normal text-neutral-500">
-              SnapStamps Edition
+          <div className="min-w-0">
+            <p className="font-body whitespace-nowrap text-[12px] font-normal text-neutral-500">
+              Collectible Editions
             </p>
-            <h1 className="font-title text-[24px] font-medium tracking-[-0.02em] text-[#0A0A0A] sm:text-[26px]">
+            <h1 className="font-title truncate text-[24px] font-medium tracking-[-0.02em] text-[#0A0A0A] sm:text-[26px]">
               Store
             </h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <DiamondBalanceBadge balance={diamondBalance} testId="diamond-balance" />
 
           <JellyButton
@@ -187,43 +188,49 @@ export function StoreView({
         </div>
       </header>
 
-      {/* Expandable Liquid-Glass Search Input */}
-      {searchOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.16 }}
-          className="mt-4"
-        >
-          <label htmlFor="store-search" className="sr-only">
-            Search store stamps
-          </label>
-          <div className="liquid-glass-btn flex h-12 items-center gap-2 rounded-2xl px-4">
-            <Reicon name="search" size={18} color="#6B7280" />
-            <input
-              id="store-search"
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search countries, Kohli, Dhoni, Messi, Ronaldo..."
-              className="font-body w-full bg-transparent text-sm text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-none"
-            />
-            {searchQuery && (
-              <JellyButton
-                type="button"
-                onClick={() => setSearchQuery('')}
-                aria-label="Clear store search"
-                className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500"
-              >
-                <Reicon name="close" size={16} />
-              </JellyButton>
-            )}
-          </div>
-        </motion.div>
-      )}
+      {/* Smooth 1-Second Expandable Liquid-Glass Search Input */}
+      <AnimatePresence initial={false}>
+        {searchOpen && (
+          <motion.div
+            key="store-search-bar"
+            initial={{ opacity: 0, height: 0, y: -14, scale: 0.96 }}
+            animate={{ opacity: 1, height: 'auto', y: 0, scale: 1 }}
+            exit={{ opacity: 0, height: 0, y: -14, scale: 0.96 }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="pt-4">
+              <label htmlFor="store-search" className="sr-only">
+                Search store stamps
+              </label>
+              <div className="liquid-glass-btn flex h-12 items-center gap-2 rounded-2xl px-4">
+                <Reicon name="search" size={18} color="#6B7280" />
+                <input
+                  id="store-search"
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search countries, Kohli, Rohit, Messi, Ronaldo..."
+                  className="font-body w-full bg-transparent text-sm text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-none"
+                />
+                {searchQuery && (
+                  <JellyButton
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Clear store search"
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500"
+                  >
+                    <Reicon name="close" size={16} />
+                  </JellyButton>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Single-Line Section Filter Pills */}
-      <div className="no-scrollbar mt-5 -mx-1 overflow-x-auto px-1">
+      <div className="no-scrollbar mt-5 -mx-1 overflow-x-auto overscroll-none px-1">
         <JellyRadio
           items={SECTION_TABS}
           value={section}
@@ -231,7 +238,7 @@ export function StoreView({
             setSection(val as StoreSectionFilter);
             setFeedback(null);
           }}
-          chipColor="rgba(255, 255, 255, 0.52)"
+          chipColor="rgba(255, 255, 255, 0.84)"
           activeColor="#0A0A0A"
           textColor="#0A0A0A"
           activeTextColor="#FFFFFF"
@@ -251,12 +258,12 @@ export function StoreView({
 
       {/* Sports Sub-Section Discipline Filter */}
       {section === 'sports' && (
-        <div className="no-scrollbar mt-3 -mx-1 overflow-x-auto px-1">
+        <div className="no-scrollbar mt-3 -mx-1 overflow-x-auto overscroll-none px-1">
           <JellyRadio
             items={SPORT_TABS}
             value={sportDiscipline}
             onChange={(val) => setSportDiscipline(val as SportDisciplineFilter)}
-            chipColor="rgba(255, 255, 255, 0.44)"
+            chipColor="rgba(255, 255, 255, 0.84)"
             activeColor="#0A0A0A"
             textColor="#0A0A0A"
             activeTextColor="#FFFFFF"
@@ -305,7 +312,7 @@ export function StoreView({
 
       {/* Store Catalog */}
       {visibleItems.length === 0 ? (
-        <div className="liquid-glass-btn-soft mt-8 rounded-[28px] p-10 text-center">
+        <div className="liquid-glass-btn-soft mt-8 rounded-[24px] p-10 text-center">
           <p className="font-title text-base font-semibold text-[#0A0A0A]">
             No matching stamps in store
           </p>
@@ -317,9 +324,9 @@ export function StoreView({
         <div className="mt-6 space-y-8">
           {countryItems.length > 0 && (
             <section aria-label="Country Stamps Section">
-              <div className="liquid-glass-btn-soft mb-4 flex items-center justify-between rounded-[22px] px-4 py-3">
+              <div className="liquid-glass-btn-soft mb-4 flex items-center justify-between rounded-[24px] px-4 py-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/60 text-[#0A0A0A]">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#0A0A0A]">
                     <Reicon name="globe" size={17} />
                   </span>
                   <div>
@@ -336,7 +343,7 @@ export function StoreView({
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+              <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-2 md:grid-cols-3 lg:gap-5">
                 {countryItems.map(renderStoreCard)}
               </div>
             </section>
@@ -344,9 +351,9 @@ export function StoreView({
 
           {cricketItems.length > 0 && (
             <section aria-label="Cricket Legends Section">
-              <div className="liquid-glass-btn-soft mb-4 flex items-center justify-between rounded-[22px] px-4 py-3">
+              <div className="liquid-glass-btn-soft mb-4 flex items-center justify-between rounded-[24px] px-4 py-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/60 text-[#0A0A0A]">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#0A0A0A]">
                     <Reicon name="trophy" size={17} />
                   </span>
                   <div>
@@ -363,7 +370,7 @@ export function StoreView({
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+              <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-2 md:grid-cols-3 lg:gap-5">
                 {cricketItems.map(renderStoreCard)}
               </div>
             </section>
@@ -371,9 +378,9 @@ export function StoreView({
 
           {footballItems.length > 0 && (
             <section aria-label="Football Legends Section">
-              <div className="liquid-glass-btn-soft mb-4 flex items-center justify-between rounded-[22px] px-4 py-3">
+              <div className="liquid-glass-btn-soft mb-4 flex items-center justify-between rounded-[24px] px-4 py-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/60 text-[#0A0A0A]">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#0A0A0A]">
                     <Reicon name="football" size={17} />
                   </span>
                   <div>
@@ -390,7 +397,7 @@ export function StoreView({
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+              <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-2 md:grid-cols-3 lg:gap-5">
                 {footballItems.map(renderStoreCard)}
               </div>
             </section>

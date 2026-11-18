@@ -77,7 +77,7 @@ export function LoginView({
       name: finalName,
       email: email.trim(),
       initials,
-      handle: `@${handleSlug || 'traveler'}.passport`,
+      handle: `@${handleSlug || 'collector'}`,
     });
   };
 
@@ -92,12 +92,12 @@ export function LoginView({
         {/* SnapStamps Scalloped Seal Logo Lockup */}
         <div className="flex items-center gap-3.5">
           <AppLogo size={52} />
-          <div className="leading-tight">
+          <div className="min-w-0 leading-tight">
             <p className="font-title text-[17px] font-semibold tracking-[-0.01em] text-[#0A0A0A]">
               SnapStamps
             </p>
-            <p className="font-body text-[12px] font-normal text-neutral-500">
-              Digital Travel Passport
+            <p className="font-body whitespace-nowrap text-[12px] font-normal text-neutral-500">
+              Collector Stamp Vault
             </p>
           </div>
         </div>
@@ -108,10 +108,10 @@ export function LoginView({
             <span className="block font-bold">
               {authMode === 'signin' ? 'Sign in.' : 'Create account.'}
             </span>
-            <span className="block font-normal">Travel passport.</span>
+            <span className="block font-normal">Start collecting.</span>
           </h1>
           <p className="font-body text-[14px] leading-relaxed text-neutral-500">
-            Save your stamp pockets, rare finds, and visited countries across every trip.
+            Save your stamp folders, rare editions, and visited countries across every trip.
           </p>
         </div>
 

@@ -159,8 +159,8 @@ const measureFolder = (
         ? (w - tabW) / 2
         : w - corners[1] - 5 * scale - shoulder - tabW;
 
-  const docW = hideTab ? clamp(Math.round(w * 0.245), 76, 98) : w * 0.54;
-  const docH = hideTab ? Math.round(docW / 1.12 + 10) : docW * 1.22;
+  const docW = hideTab ? clamp(Math.round(w * 0.285), 94, 126) : w * 0.54;
+  const docH = hideTab ? Math.round(docW * 1.15) : docW * 1.22;
 
   return {
     scale,
@@ -341,6 +341,15 @@ export interface FolderProps {
   onOpenChange?: (open: boolean) => void;
   onItemClick?: (item: FolderInputItem, index: number) => void;
   onItemDrop?: (item: FolderInputItem, index: number, inside: boolean) => void;
+  onItemDragMove?: (item: FolderInputItem, index: number, clientX: number, clientY: number) => void;
+  onItemDragCancel?: () => void;
+  onItemDropAtPoint?: (
+    item: FolderInputItem,
+    index: number,
+    clientX: number,
+    clientY: number,
+    inside: boolean
+  ) => boolean;
   draggable?: boolean;
   zoomOnClick?: boolean;
   peek?: boolean;
@@ -406,6 +415,9 @@ export function Folder({
   onOpenChange,
   onItemClick,
   onItemDrop,
+  onItemDragMove,
+  onItemDragCancel,
+  onItemDropAtPoint,
   draggable = true,
   zoomOnClick = false,
   peek = true,
@@ -505,6 +517,9 @@ export function Folder({
     closeOnOutsideClick,
     onItemClick,
     onItemDrop,
+    onItemDragMove,
+    onItemDragCancel,
+    onItemDropAtPoint,
     tilt: clamp(tilt, 0, 1.5),
     bounce: clamp(bounce, 0, 1),
     speed: clamp(speed, 0.2, 3),
@@ -526,6 +541,9 @@ export function Folder({
     closeOnOutsideClick,
     onItemClick,
     onItemDrop,
+    onItemDragMove,
+    onItemDragCancel,
+    onItemDropAtPoint,
     tilt: clamp(tilt, 0, 1.5),
     bounce: clamp(bounce, 0, 1),
     speed: clamp(speed, 0.2, 3),
@@ -1053,15 +1071,41 @@ export function Folder({
       root.dataset.dragging = '';
     };
 
-    const drop = (drag: NonNullable<typeof state.drag>, cancelled: boolean) => {
+    const drop = (drag: NonNullable<typeof state.drag>, cancelled: boolean, clientX: number, clientY: number) => {
       const s = settingsRef.current;
       const item = state.items[drag.index];
       state.receiving = false;
       delete root.dataset.dragging;
-      if (!item) return;
+      if (!item) {
+        s.onItemDragCancel?.();
+        return;
+      }
+      if (cancelled) {
+        item.place = 'inside';
+        item.elevated = false;
+        syncOutside();
+        s.onItemDragCancel?.();
+        return;
+      }
       const time = performance.now() / 1000;
-      const [vx, vy] = cancelled ? [0, 0] : velocityOf(drag.samples);
-      if (overFolder(state.deskX, state.deskY)) {
+      const [vx, vy] = velocityOf(drag.samples);
+      const isInsideSelf = overFolder(state.deskX, state.deskY);
+
+      if (s.onItemDropAtPoint?.(s.entries[drag.index], drag.index, clientX, clientY, isInsideSelf)) {
+        if (state.items.length > 1) {
+          state.items.splice(drag.index, 1);
+        } else {
+          item.place = 'inside';
+          item.elevated = false;
+          item.fresh = true;
+        }
+        state.hoveredItem = -1;
+        state.focus = -1;
+        syncOutside();
+        return;
+      }
+
+      if (isInsideSelf) {
         const entering = item.place === 'out' || item.elevated;
         item.place = 'inside';
         if (entering && !reduce) {
@@ -1094,24 +1138,30 @@ export function Folder({
       s.onItemDrop?.(s.entries[drag.index], drag.index, false);
     };
 
-    const onMove = (event: PointerEvent) => {
+    const updateDragMove = (event: PointerEvent) => {
       const drag = state.drag;
-      if (drag && event.pointerId === drag.id) {
-        const [x, y] = toDesk(event.clientX, event.clientY);
-        state.deskX = x;
-        state.deskY = y;
-        const now = performance.now();
-        drag.samples.push([now, x, y]);
-        while (drag.samples.length > 2 && now - drag.samples[0][0] > 100) drag.samples.shift();
-        if (!drag.active) {
-          const threshold = event.pointerType === 'touch' ? 8 : 4;
-          if (Math.hypot(event.clientX - drag.clientX, event.clientY - drag.clientY) > threshold) {
-            startDrag(drag);
-          }
+      if (!drag || event.pointerId !== drag.id) return;
+      const [x, y] = toDesk(event.clientX, event.clientY);
+      state.deskX = x;
+      state.deskY = y;
+      const now = performance.now();
+      drag.samples.push([now, x, y]);
+      while (drag.samples.length > 2 && now - drag.samples[0][0] > 100) drag.samples.shift();
+      if (!drag.active) {
+        const threshold = event.pointerType === 'touch' ? 8 : 4;
+        if (Math.hypot(event.clientX - drag.clientX, event.clientY - drag.clientY) > threshold) {
+          startDrag(drag);
         }
-        if (drag.active) updateReceiving();
-        wake();
       }
+      if (drag.active) {
+        updateReceiving();
+        const s = settingsRef.current;
+        s.onItemDragMove?.(s.entries[drag.index], drag.index, event.clientX, event.clientY);
+      }
+      wake();
+    };
+
+    const onMove = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return;
       const box = root.getBoundingClientRect();
       state.pointerX = clamp(((event.clientX - box.left) / box.width) * 2 - 1, -1.5, 1.5);
@@ -1182,7 +1232,7 @@ export function Folder({
       const drag = state.drag;
       if (drag && event.pointerId === drag.id) {
         state.drag = null;
-        if (drag.active) drop(drag, event.type === 'pointercancel');
+        if (drag.active) drop(drag, event.type === 'pointercancel', event.clientX, event.clientY);
       }
       wake();
     };
@@ -1211,6 +1261,7 @@ export function Folder({
     root.addEventListener('pointermove', onMove);
     root.addEventListener('pointerleave', onLeave);
     root.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointermove', updateDragMove);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
     document.addEventListener('pointerdown', onDocumentDown);
@@ -1263,6 +1314,7 @@ export function Folder({
       root.removeEventListener('pointermove', onMove);
       root.removeEventListener('pointerleave', onLeave);
       root.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointermove', updateDragMove);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
       document.removeEventListener('pointerdown', onDocumentDown);
@@ -1349,11 +1401,15 @@ export function Folder({
 
         {entries.map((item, index) => {
           const interactive = isOpen || outside.includes(index);
+          const itemObj =
+            item && typeof item === 'object' && !isValidElement(item)
+              ? (item as FolderItemEntry)
+              : null;
           const itemKey =
             isValidElement(item) && item.key != null
               ? item.key
-              : item && typeof item === 'object' && 'id' in item && item.id
-                ? String(item.id)
+              : itemObj?.id
+                ? String(itemObj.id)
                 : index;
           return (
             <div
@@ -1363,6 +1419,9 @@ export function Folder({
               }}
               className="folder-layer folder-item"
               data-folder-item={index}
+              aria-label={itemObj?.title ? `Stamp ${itemObj.title}` : undefined}
+              draggable={false}
+              onDragStart={(event) => event.preventDefault()}
               role={interactive ? 'button' : undefined}
               tabIndex={interactive ? 0 : undefined}
               onClick={(event) => onItemActivate(event, index)}

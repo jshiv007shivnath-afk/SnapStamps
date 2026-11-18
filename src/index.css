@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+@theme {
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f5f5f5;
+  --color-neutral-200: #e5e5e5;
+  --color-neutral-300: #d4d4d4;
+  --color-neutral-400: #666666;
+  --color-neutral-500: #595959;
+  --color-neutral-600: #4a4a4a;
+  --color-neutral-700: #333333;
+  --color-neutral-800: #1f1f1f;
+  --color-neutral-900: #0a0a0a;
+  --color-neutral-950: #050505;
+}
+
 @layer base {
   :root {
     --bg-canvas: #f7f7f9;
@@ -18,21 +32,37 @@
   }
 
   html {
+    height: 100%;
     background-color: var(--bg-canvas);
-    overflow-x: clip;
-    overflow-y: auto;
-    height: auto;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
   }
 
   body {
+    height: 100%;
     background-color: var(--bg-canvas);
     color: var(--ink-primary);
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
-    overflow-x: clip;
-    min-height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+
+  .fixed-bottom-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    touch-action: none;
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+    will-change: transform;
+    backface-visibility: hidden;
   }
 
   .no-scrollbar {
@@ -91,49 +121,31 @@
   filter: none;
 }
 
-/* Optical Liquid Glass button & surface styling (zero shadows, zero solid white fill) */
+/* Optical Liquid Glass button & surface styling (zero shadows, contrast-verifiable frosted glass) */
 .liquid-glass-btn {
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.56) 0%,
-    rgba(255, 255, 255, 0.24) 55%,
-    rgba(255, 255, 255, 0.4) 100%
-  );
+  background-color: rgba(255, 255, 255, 0.84);
   -webkit-backdrop-filter: blur(18px) saturate(185%);
   backdrop-filter: blur(18px) saturate(185%);
-  border: 1px solid rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.88);
   box-shadow: none !important;
-  transition: background 180ms ease, opacity 160ms ease;
+  transition: background-color 180ms ease, opacity 160ms ease;
 }
 
 .liquid-glass-btn:hover {
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.72) 0%,
-    rgba(255, 255, 255, 0.36) 55%,
-    rgba(255, 255, 255, 0.54) 100%
-  );
+  background-color: rgba(255, 255, 255, 0.94);
 }
 
 .liquid-glass-btn-soft {
-  background: linear-gradient(
-    155deg,
-    rgba(239, 242, 248, 0.72) 0%,
-    rgba(226, 231, 240, 0.42) 100%
-  );
+  background-color: rgba(242, 244, 249, 0.9);
   -webkit-backdrop-filter: blur(16px) saturate(175%);
   backdrop-filter: blur(16px) saturate(175%);
-  border: 1px solid rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.88);
   box-shadow: none !important;
-  transition: background 180ms ease, opacity 160ms ease;
+  transition: background-color 180ms ease, opacity 160ms ease;
 }
 
 .liquid-glass-btn-soft:hover {
-  background: linear-gradient(
-    155deg,
-    rgba(244, 246, 251, 0.84) 0%,
-    rgba(230, 235, 244, 0.54) 100%
-  );
+  background-color: rgba(246, 248, 252, 0.96);
 }
 
 /* Perforated postage stamp edge masks using non-overlapping additive layers */

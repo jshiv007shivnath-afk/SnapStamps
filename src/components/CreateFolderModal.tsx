@@ -66,7 +66,7 @@ export function CreateFolderModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm overscroll-none sm:p-6"
           onClick={onClose}
         >
           <motion.div
@@ -78,7 +78,7 @@ export function CreateFolderModal({
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
             transition={{ type: 'spring', stiffness: 360, damping: 28 }}
             onClick={(e) => e.stopPropagation()}
-            className="no-scrollbar max-h-[86dvh] w-full max-w-md overflow-y-auto overflow-x-hidden rounded-[28px] border border-black/8 bg-white p-6"
+            className="no-scrollbar max-h-[86dvh] w-full max-w-md overflow-y-auto overflow-x-hidden overscroll-none rounded-[24px] border border-black/8 bg-white p-6"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-0">
@@ -177,7 +177,7 @@ export function CreateFolderModal({
                     No stamps in your vault yet. After creating this folder, any stamp you unlock in Store can be saved straight inside it.
                   </div>
                 ) : (
-                  <div className="no-scrollbar mt-2 flex max-h-36 flex-wrap gap-2 overflow-y-auto rounded-2xl bg-[#F5F5F7] p-2.5">
+                  <div className="no-scrollbar mt-2 flex max-h-36 flex-wrap gap-2 overflow-y-auto overscroll-none rounded-2xl bg-[#F5F5F7] p-2.5">
                     {unlockedStamps.map((stamp) => {
                       const selected = selectedStampIds.includes(stamp.id);
                       return (

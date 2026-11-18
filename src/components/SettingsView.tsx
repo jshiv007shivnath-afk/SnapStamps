@@ -10,7 +10,7 @@ interface SettingsViewProps {
   stampsCount: number;
   onBack: () => void;
   onUpdateSettings: (next: AppSettings) => void;
-  onOpenProfile: () => void;
+  onOpenEditProfile: () => void;
   onOpenNotifications: () => void;
   onSignOut: () => void;
 }
@@ -59,52 +59,65 @@ export function SettingsView({
   stampsCount,
   onBack,
   onUpdateSettings,
-  onOpenProfile,
+  onOpenEditProfile,
   onOpenNotifications,
   onSignOut,
 }: SettingsViewProps) {
   return (
     <div className="mx-auto w-full max-w-5xl px-5 pb-36 pt-4 sm:px-8">
       <header className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <BackButton onClick={onBack} ariaLabel="Back to Stamp Library" />
-          <div>
-            <p className="font-body text-[12px] font-normal text-neutral-500">
+        <div className="flex min-w-0 items-center gap-3">
+          <BackButton onClick={onBack} ariaLabel="Back to Profile" />
+          <div className="min-w-0">
+            <p className="font-body whitespace-nowrap text-[12px] font-normal text-neutral-500">
               Preferences &amp; Alerts
             </p>
-            <h1 className="font-title text-[24px] font-medium tracking-[-0.02em] text-[#0A0A0A] sm:text-[26px]">
+            <h1 className="font-title truncate text-[24px] font-medium tracking-[-0.02em] text-[#0A0A0A] sm:text-[26px]">
               Settings
             </h1>
           </div>
         </div>
       </header>
 
-      {/* Account Summary Card */}
-      <section className="mt-6 rounded-[24px] border border-black/6 bg-white p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3.5">
+      {/* Account Summary & Dedicated Edit Profile Entry */}
+      <section className="mt-6 overflow-hidden rounded-[24px] border border-black/6 bg-white">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-5">
+          <div className="flex min-w-0 items-center gap-3.5">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#E9DEC9] text-sm font-bold text-[#0A0A0A]">
               {userProfile.initials}
             </div>
-            <div>
-              <h2 className="font-title text-[16px] font-semibold text-[#0A0A0A]">
+            <div className="min-w-0">
+              <h2 className="font-title truncate text-[16px] font-semibold text-[#0A0A0A]">
                 {userProfile.name}
               </h2>
-              <p className="font-body text-xs text-neutral-500">
-                {userProfile.handle} · {foldersCount} Folders · {stampsCount} Stamps
+              <p className="font-body truncate text-xs text-neutral-500">
+                {userProfile.email} · {foldersCount} Folders · {stampsCount} Stamps
               </p>
             </div>
           </div>
-
-          <JellyButton
-            type="button"
-            onClick={onOpenProfile}
-            className="font-control flex h-10 items-center gap-1.5 rounded-full bg-[#F5F5F7] px-4 text-xs font-medium text-[#0A0A0A] hover:bg-neutral-200"
-          >
-            <Reicon name="user" size={14} />
-            <span>Open Profile</span>
-          </JellyButton>
         </div>
+
+        <JellyButton
+          type="button"
+          onClick={onOpenEditProfile}
+          data-testid="settings-edit-profile-btn"
+          className="flex h-14 w-full items-center justify-between border-t border-black/6 px-5 text-left transition-colors hover:bg-[#F7F7F9]"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F5F5F7] text-[#0A0A0A]">
+              <Reicon name="user" size={18} />
+            </span>
+            <div>
+              <p className="font-title text-[14.5px] font-medium text-[#0A0A0A]">
+                Edit Profile
+              </p>
+              <p className="font-body text-xs text-neutral-500">
+                Change display name &amp; email address
+              </p>
+            </div>
+          </div>
+          <Reicon name="arrow-left" size={16} className="rotate-180 text-neutral-400" />
+        </JellyButton>
       </section>
 
       {/* Notification & Haptic Toggles */}

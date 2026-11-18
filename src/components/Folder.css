@@ -111,6 +111,10 @@
   touch-action: none;
 }
 
+.folder-root[data-dragging] {
+  z-index: 60 !important;
+}
+
 .folder-root[data-dragging],
 .folder-root[data-dragging] * {
   cursor: grabbing !important;
@@ -244,11 +248,14 @@
   border-radius: 8px;
 }
 
-.folder-photo img {
+.folder-photo img,
+.folder-item img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
   pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
   -webkit-user-drag: none;
 }

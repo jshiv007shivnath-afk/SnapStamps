@@ -1,5 +1,8 @@
 import type {
   AppNotification,
+  ChatFilterMode,
+  ChatMessageItem,
+  ChatThread,
   CollectionFilter,
   DailyTaskStatus,
   PocketTint,
@@ -196,7 +199,7 @@ export function evaluateDailyMissions({
       id: 'mission-daily-login',
       title: 'Log in daily',
       description: 'Open SnapStamps today to collect your daily diamond bonus.',
-      rewardDiamonds: 150,
+      rewardDiamonds: 5,
       progress: 1,
       target: 1,
       isComplete: true,
@@ -206,7 +209,7 @@ export function evaluateDailyMissions({
       id: 'mission-favorite-stamp',
       title: 'Favorite a stamp',
       description: 'Tap the star icon on any stamp in your collection.',
-      rewardDiamonds: 100,
+      rewardDiamonds: 10,
       progress: hasFavorite ? 1 : 0,
       target: 1,
       isComplete: hasFavorite,
@@ -216,7 +219,7 @@ export function evaluateDailyMissions({
       id: 'mission-create-folder',
       title: 'Create a custom folder',
       description: 'Use the + icon on Home to organize your editions.',
-      rewardDiamonds: 120,
+      rewardDiamonds: 15,
       progress: customFolders >= 1 ? 1 : 0,
       target: 1,
       isComplete: customFolders >= 1,
@@ -228,22 +231,24 @@ export function evaluateDailyMissions({
 export function evaluateDailyChallenges({
   stamps,
   posts,
+  chatMessagesCount = 0,
   claimedChallengeIds,
 }: {
   stamps: StampItem[];
   posts: SocialPost[];
+  chatMessagesCount?: number;
   claimedChallengeIds: string[];
 }): DailyTaskStatus[] {
   const claimed = new Set(claimedChallengeIds);
   const unlockedCount = stamps.filter((s) => s.isUnlocked).length;
-  const userPostsCount = posts.filter((p) => !p.isDemoSeed).length;
+  const userSharesCount = posts.filter((p) => !p.isDemoSeed).length + chatMessagesCount;
 
   return [
     {
       id: 'challenge-collect-stamp',
       title: 'Collect one new stamp',
       description: 'Unlock any Country or Sports Legend edition from Store or Studio.',
-      rewardDiamonds: 200,
+      rewardDiamonds: 10,
       progress: unlockedCount >= 1 ? 1 : 0,
       target: 1,
       isComplete: unlockedCount >= 1,
@@ -251,19 +256,19 @@ export function evaluateDailyChallenges({
     },
     {
       id: 'challenge-share-post',
-      title: 'Share a post',
-      description: 'Publish a stamp story to the Travelers Circle feed.',
-      rewardDiamonds: 150,
-      progress: userPostsCount >= 1 ? 1 : 0,
+      title: 'Say hi or share in Circle',
+      description: 'Send a message or stamp in the Travelers Circle chat.',
+      rewardDiamonds: 15,
+      progress: userSharesCount >= 1 ? 1 : 0,
       target: 1,
-      isComplete: userPostsCount >= 1,
+      isComplete: userSharesCount >= 1,
       isClaimed: claimed.has('challenge-share-post'),
     },
     {
       id: 'challenge-collector-trio',
       title: 'Curate three editions',
-      description: 'Build a showcase with 3 unlocked stamps in your passport.',
-      rewardDiamonds: 300,
+      description: 'Collect 3 unlocked stamps in your collection.',
+      rewardDiamonds: 20,
       progress: Math.min(unlockedCount, 3),
       target: 3,
       isComplete: unlockedCount >= 3,
@@ -411,5 +416,98 @@ export function markAllNotificationsRead(
   notifications: AppNotification[]
 ): AppNotification[] {
   return notifications.map((n) => ({ ...n, isRead: true }));
+}
+
+export function filterChatThreads(
+  threads: ChatThread[],
+  filter: ChatFilterMode,
+  searchQuery: string
+): ChatThread[] {
+  const q = searchQuery.trim().toLowerCase();
+  return threads.filter((thread) => {
+    if (filter === 'unread' && thread.unreadCount === 0) return false;
+    if (filter === 'favorites' && !thread.isFavorite) return false;
+    if (!q) return true;
+    const lastText = thread.messages[thread.messages.length - 1]?.text ?? '';
+    return (
+      thread.name.toLowerCase().includes(q) ||
+      thread.subtitle.toLowerCase().includes(q) ||
+      lastText.toLowerCase().includes(q)
+    );
+  });
+}
+
+export function getChatInboxCounts(threads: ChatThread[]): {
+  unreadThreadsCount: number;
+  favoritesCount: number;
+} {
+  return {
+    unreadThreadsCount: threads.filter((t) => t.unreadCount > 0).length,
+    favoritesCount: threads.filter((t) => t.isFavorite).length,
+  };
+}
+
+export function markChatThreadRead(threads: ChatThread[], threadId: string): ChatThread[] {
+  return threads.map((t) => (t.id === threadId ? { ...t, unreadCount: 0 } : t));
+}
+
+export function toggleChatThreadFavorite(threads: ChatThread[], threadId: string): ChatThread[] {
+  return threads.map((t) => (t.id === threadId ? { ...t, isFavorite: !t.isFavorite } : t));
+}
+
+export function transferDiamondsInChat(
+  diamondBalance: number,
+  amount: number
+): {
+  success: boolean;
+  diamondBalance: number;
+  reason?: 'invalid_amount' | 'insufficient_diamonds';
+} {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { success: false, diamondBalance, reason: 'invalid_amount' };
+  }
+  if (diamondBalance < amount) {
+    return { success: false, diamondBalance, reason: 'insufficient_diamonds' };
+  }
+  return {
+    success: true,
+    diamondBalance: diamondBalance - amount,
+  };
+}
+
+export function sendChatThreadMessage(
+  threads: ChatThread[],
+  threadId: string,
+  payload: {
+    senderName: string;
+    senderInitials: string;
+    text: string;
+    stampId?: string;
+    diamondGiftAmount?: number;
+    timestampLabel?: string;
+  }
+): ChatThread[] {
+  const msg: ChatMessageItem = {
+    id: `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    senderId: 'self',
+    senderName: payload.senderName,
+    senderInitials: payload.senderInitials,
+    senderTint: '#0A0A0A',
+    isSelf: true,
+    text: payload.text,
+    timestampLabel: payload.timestampLabel ?? 'Just now',
+    stampId: payload.stampId,
+    diamondGiftAmount: payload.diamondGiftAmount,
+  };
+
+  return threads.map((t) => {
+    if (t.id !== threadId) return t;
+    return {
+      ...t,
+      unreadCount: 0,
+      lastTimeLabel: 'Just now',
+      messages: [...t.messages, msg],
+    };
+  });
 }
 

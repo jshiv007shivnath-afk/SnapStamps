@@ -76,31 +76,11 @@
 }
 
 .glass-surface__sheen {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.5) 0%,
-    transparent 45%,
-    transparent 65%,
-    rgba(255, 255, 255, 0.22) 100%
-  );
+  background-color: rgba(255, 255, 255, 0.14);
 }
 
 .glass-surface__rim {
-  padding: 1.5px;
-  background: linear-gradient(
-    150deg,
-    rgba(255, 255, 255, 0.8),
-    rgba(255, 255, 255, 0.16) 45%,
-    rgba(255, 255, 255, 0.1) 60%,
-    rgba(255, 255, 255, 0.48)
-  );
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#000 0 0) content-box exclude,
-    linear-gradient(#000 0 0);
+  border: 1px solid rgba(255, 255, 255, 0.72);
 }
 
 .glass-surface__line,

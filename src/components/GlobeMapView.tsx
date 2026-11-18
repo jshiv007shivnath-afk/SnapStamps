@@ -476,7 +476,7 @@ export function GlobeMapView({
               </svg>
 
               {/* Quick Destination Jump Strip */}
-              <div className="mt-2 flex w-full gap-2 overflow-x-auto pb-1">
+              <div className="mt-2 flex w-full gap-2 overflow-x-auto overscroll-none pb-1">
                 {stamps.map((s) => (
                   <JellyButton
                     key={s.id}
@@ -702,7 +702,7 @@ export function GlobeMapView({
 
           {/* Recent Flight / Travel Arcs */}
           <div className="rounded-[28px] bg-white p-5">
-            <h3 className="font-display text-sm font-bold text-[#0A0A0A]">Passport Flight Routes</h3>
+            <h3 className="font-display text-sm font-bold text-[#0A0A0A]">Travel Flight Routes</h3>
             {travelArcs.length === 0 ? (
               <p className="mt-2 text-xs text-neutral-500">
                 Unlock at least two stamps to trace your travel routes across the globe.

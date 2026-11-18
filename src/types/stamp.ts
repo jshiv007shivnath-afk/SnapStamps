@@ -6,9 +6,12 @@ export type AppTab =
   | 'globe'
   | 'store'
   | 'notifications'
-  | 'settings';
+  | 'settings'
+  | 'edit-profile';
 
 export type CollectionFilter = 'all' | 'national' | 'favorites' | 'rare';
+
+export type ChatFilterMode = 'all' | 'unread' | 'favorites' | 'finds';
 
 export type StoreSectionFilter = 'all' | 'country' | 'sports';
 
@@ -135,3 +138,54 @@ export interface AppSettings {
   storeDropAlerts: boolean;
   eventAlerts: boolean;
 }
+
+export interface CircleMember {
+  id: string;
+  name: string;
+  city: string;
+  initials: string;
+  avatarTint: string;
+  isOnline: boolean;
+  statusNote: string;
+}
+
+export interface CircleChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderInitials: string;
+  senderTint: string;
+  isSelf?: boolean;
+  text: string;
+  timestampLabel: string;
+  stampId?: string;
+}
+
+export interface ChatMessageItem {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderInitials: string;
+  senderTint: string;
+  isSelf?: boolean;
+  text: string;
+  timestampLabel: string;
+  dateDividerLabel?: string;
+  stampId?: string;
+  diamondGiftAmount?: number;
+}
+
+export interface ChatThread {
+  id: string;
+  memberId: string;
+  name: string;
+  subtitle: string;
+  initials: string;
+  avatarTint: string;
+  isGroup?: boolean;
+  isFavorite: boolean;
+  unreadCount: number;
+  lastTimeLabel: string;
+  messages: ChatMessageItem[];
+}
+

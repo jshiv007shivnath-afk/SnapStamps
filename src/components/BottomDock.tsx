@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import type { AppTab } from '../types/stamp';
 import { GlassSurface } from './GlassSurface';
 import { JellyButton } from './JellyButton';
@@ -10,12 +11,11 @@ interface BottomDockProps {
   onOpenStore: () => void;
 }
 
-// Navigation order matched to user design:
-// 1. Library (Home) | 2. My Stamps (Frame) | 3. Rare Finds Feed (Chat) | 4. Profile (User) + Right Circle: Store
+// Navigation order:
+// 1. Library (Home) | 2. Travelers Circle (Chat) | 3. Profile (User) + Right Circle: Store
 const DOCK_ITEMS: Array<{ id: AppTab; label: string; icon: ReiconName }> = [
   { id: 'library', label: 'Library', icon: 'home' },
-  { id: 'stamps', label: 'My Stamps', icon: 'frame' },
-  { id: 'feed', label: 'Rare Finds', icon: 'chat' },
+  { id: 'feed', label: 'Circle', icon: 'chat' },
   { id: 'profile', label: 'Profile', icon: 'user' },
 ];
 
@@ -38,16 +38,16 @@ export function BottomDock({ activeTab, onTabChange, onOpenStore }: BottomDockPr
     };
   });
 
-  return (
+  const navContent = (
     <nav
       aria-label="Primary navigation"
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex items-center justify-center gap-2.5 px-4 pb-safe-dock pt-2"
+      className="fixed-bottom-dock fixed inset-x-0 bottom-0 z-50 touch-none pointer-events-none flex items-center justify-center gap-2.5 px-4 pb-safe-dock pt-2"
     >
       {/* Floating React Bits GlassSurface + JellyRadio 4-Tab Navigation Pill */}
       <GlassSurface
         width="auto"
         height={64}
-        borderRadius={32}
+        borderRadius={9999}
         distortionScale={-140}
         displace={0.65}
         backgroundOpacity={0.28}
@@ -61,13 +61,13 @@ export function BottomDock({ activeTab, onTabChange, onOpenStore }: BottomDockPr
           items={radioItems}
           value={radioValue}
           onChange={(nextValue) => onTabChange(nextValue as AppTab)}
-          chipColor="rgba(255, 255, 255, 0.34)"
+          chipColor="rgba(255, 255, 255, 0.84)"
           activeColor="#0A0A0A"
           textColor="#0A0A0A"
           activeTextColor="#FFFFFF"
           size="lg"
           gap={6}
-          radius={22}
+          radius={9999}
           swell={0.12}
           barge={3}
           shrink={0.04}
@@ -84,7 +84,7 @@ export function BottomDock({ activeTab, onTabChange, onOpenStore }: BottomDockPr
       <GlassSurface
         width={58}
         height={58}
-        borderRadius={29}
+        borderRadius={9999}
         distortionScale={-140}
         displace={0.65}
         backgroundOpacity={0.28}
@@ -103,7 +103,7 @@ export function BottomDock({ activeTab, onTabChange, onOpenStore }: BottomDockPr
           className={`font-control flex h-full w-full items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-[#0A0A0A] ${
             isStoreActive
               ? 'bg-[#0A0A0A] text-white'
-              : 'bg-white/15 text-[#0A0A0A] hover:bg-white/30'
+              : 'liquid-glass-btn text-[#0A0A0A]'
           }`}
         >
           <Reicon
@@ -115,4 +115,7 @@ export function BottomDock({ activeTab, onTabChange, onOpenStore }: BottomDockPr
       </GlassSurface>
     </nav>
   );
+
+  if (typeof document === 'undefined') return navContent;
+  return createPortal(navContent, document.body);
 }

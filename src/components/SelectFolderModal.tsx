@@ -54,7 +54,7 @@ export function SelectFolderModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm overscroll-none"
           onClick={onClose}
         >
           <motion.div
@@ -66,7 +66,7 @@ export function SelectFolderModal({
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
             transition={{ type: 'spring', stiffness: 360, damping: 28 }}
             onClick={(e) => e.stopPropagation()}
-            className="no-scrollbar max-h-[86dvh] w-full max-w-md overflow-y-auto overflow-x-hidden rounded-[28px] border border-black/8 bg-white p-6"
+            className="no-scrollbar max-h-[86dvh] w-full max-w-md overflow-y-auto overflow-x-hidden overscroll-none rounded-[24px] border border-black/8 bg-white p-6"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -89,8 +89,8 @@ export function SelectFolderModal({
             </div>
 
             {/* Purchased Stamp Thumbnail Preview */}
-            <div className="mt-4 flex items-center gap-4 rounded-2xl bg-[#F5F5F7] p-3">
-              <div className="w-[74px] shrink-0">
+            <div className="mt-4 flex items-center gap-4 rounded-2xl bg-[#F5F5F7] p-3.5">
+              <div className="w-[92px] shrink-0">
                 <PerforatedStampCard
                   stamp={{ ...stamp, isUnlocked: true }}
                   compact
@@ -114,7 +114,7 @@ export function SelectFolderModal({
             </div>
 
             {/* Folder List */}
-            <div className="mt-4 max-h-60 space-y-2 overflow-y-auto pr-0.5">
+            <div className="mt-4 max-h-60 space-y-2 overflow-y-auto overscroll-none pr-0.5">
               {pockets.map((pocket) => {
                 const count = getPocketStampCount(stamps, pocket.id);
                 const isDefaultMatch = pocket.id === stamp.pocketId;

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
+import { createPortal } from 'react-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import type { CollectionFilter, StampItem, StampPocket } from '../types/stamp';
 import { filterStamps } from '../utils/stampLogic';
 import { BackButton } from './BackButton';
@@ -70,40 +71,46 @@ export function MyStampsView({
         </JellyButton>
       </header>
 
-      {/* Expandable Search Input */}
-      {searchOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.16 }}
-          className="mt-4"
-        >
-          <label htmlFor="my-stamps-search" className="sr-only">
-            Search collected stamps
-          </label>
-          <div className="flex h-12 items-center gap-2 rounded-2xl bg-white px-4">
-            <Reicon name="search" size={18} color="#6B7280" />
-            <input
-              id="my-stamps-search"
-              type="search"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Filter by city, country, or rarity..."
-              className="w-full bg-transparent text-sm text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-none"
-            />
-            {searchQuery && (
-              <JellyButton
-                type="button"
-                onClick={() => onSearchChange('')}
-                aria-label="Clear stamps search"
-                className="flex h-11 w-11 items-center justify-center text-neutral-400 hover:text-neutral-700"
-              >
-                <Reicon name="close" size={18} />
-              </JellyButton>
-            )}
-          </div>
-        </motion.div>
-      )}
+      {/* Smooth 1-Second Expandable Search Input */}
+      <AnimatePresence initial={false}>
+        {searchOpen && (
+          <motion.div
+            key="my-stamps-search-bar"
+            initial={{ opacity: 0, height: 0, y: -14, scale: 0.96 }}
+            animate={{ opacity: 1, height: 'auto', y: 0, scale: 1 }}
+            exit={{ opacity: 0, height: 0, y: -14, scale: 0.96 }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="pt-4">
+              <label htmlFor="my-stamps-search" className="sr-only">
+                Search collected stamps
+              </label>
+              <div className="flex h-12 items-center gap-2 rounded-2xl bg-white px-4">
+                <Reicon name="search" size={18} color="#6B7280" />
+                <input
+                  id="my-stamps-search"
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  placeholder="Filter by city, country, or rarity..."
+                  className="w-full bg-transparent text-sm text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-none"
+                />
+                {searchQuery && (
+                  <JellyButton
+                    type="button"
+                    onClick={() => onSearchChange('')}
+                    aria-label="Clear stamps search"
+                    className="flex h-11 w-11 items-center justify-center text-neutral-400 hover:text-neutral-700"
+                  >
+                    <Reicon name="close" size={18} />
+                  </JellyButton>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Collections Section Title matching Reference Screen 3 */}
       <div className="mt-6 flex flex-wrap items-baseline justify-between gap-2">
@@ -129,18 +136,18 @@ export function MyStampsView({
       </div>
 
       {/* Single-line JellyRadio Filter Tabs with liquid-glass idle pills & soft spring ripple */}
-      <div className="mt-3 -mx-1 overflow-x-auto px-1">
+      <div className="mt-3 -mx-1 overflow-x-auto overscroll-none px-1">
         <JellyRadio
           items={FILTER_TABS}
           value={activeFilter}
           onChange={(val) => onFilterChange(val as CollectionFilter)}
-          chipColor="rgba(255, 255, 255, 0.45)"
+          chipColor="rgba(255, 255, 255, 0.84)"
           activeColor="#0A0A0A"
           textColor="#0A0A0A"
           activeTextColor="#FFFFFF"
           size="md"
           gap={6}
-          radius={18}
+          radius={9999}
           swell={0.08}
           barge={2}
           shrink={0.03}
@@ -154,7 +161,7 @@ export function MyStampsView({
 
       {/* Stamp Grid (2 columns mobile matching Reference Screen 3, 3-4 columns desktop) */}
       {filteredStamps.length === 0 ? (
-        <div className="liquid-glass-btn-soft mt-8 rounded-[28px] p-10 text-center">
+        <div className="liquid-glass-btn-soft mt-8 rounded-[24px] p-10 text-center">
           <p className="font-title text-base font-semibold text-[#0A0A0A]">
             {stamps.length === 0 ? 'Your stamp vault is ready' : 'No stamps match this filter'}
           </p>
@@ -184,7 +191,7 @@ export function MyStampsView({
           </div>
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-8">
+        <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-3 lg:gap-x-6 lg:gap-y-8">
           {filteredStamps.map((stamp) => (
             <PerforatedStampCard
               key={stamp.id}
@@ -197,16 +204,21 @@ export function MyStampsView({
       )}
 
       {/* Standalone Enlarged 'Add Stamps' Black Pill at Bottom Center (No Bottom Nav Bar on My Stamps) */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-6 pb-safe-dock pt-3">
-        <JellyButton
-          type="button"
-          jellyIntensity="medium"
-          onClick={onOpenStudio}
-          className="font-control pointer-events-auto flex h-14 min-w-[210px] items-center justify-center rounded-full bg-[#0A0A0A] px-10 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A0A0A]"
-        >
-          <span>Add Stamps</span>
-        </JellyButton>
-      </div>
+      {(() => {
+        const cta = (
+          <div className="fixed-bottom-dock fixed inset-x-0 bottom-0 z-50 touch-none pointer-events-none flex justify-center px-6 pb-safe-dock pt-3">
+            <JellyButton
+              type="button"
+              jellyIntensity="medium"
+              onClick={onOpenStudio}
+              className="font-control pointer-events-auto flex h-14 min-w-[210px] items-center justify-center rounded-full bg-[#0A0A0A] px-10 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A0A0A]"
+            >
+              <span>Add Stamps</span>
+            </JellyButton>
+          </div>
+        );
+        return typeof document === 'undefined' ? cta : createPortal(cta, document.body);
+      })()}
     </div>
   );
 }

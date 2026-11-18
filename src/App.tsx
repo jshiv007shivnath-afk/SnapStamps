@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
+  DEFAULT_CHAT_THREADS,
+  DEFAULT_CIRCLE_CHAT,
+  DEFAULT_CIRCLE_MEMBERS,
   DEFAULT_NOTIFICATIONS,
   DEFAULT_SETTINGS,
   DEMO_POCKETS,
@@ -12,6 +15,9 @@ import type {
   AppNotification,
   AppSettings,
   AppTab,
+  ChatThread,
+  CircleChatMessage,
+  CircleMember,
   CollectionFilter,
   DailyTaskStatus,
   PlaceCandidate,
@@ -31,12 +37,17 @@ import {
   getTodayDateKey,
   getUnreadNotificationCount,
   markAllNotificationsRead,
+  markChatThreadRead,
   markNotificationRead,
   purchaseStoreStamp,
+  sendChatThreadMessage,
+  toggleChatThreadFavorite,
   toggleStampFavorite,
+  transferDiamondsInChat,
 } from './utils/stampLogic';
 import { BottomDock } from './components/BottomDock';
 import { CreateFolderModal } from './components/CreateFolderModal';
+import { EditProfileView } from './components/EditProfileView';
 import { GlobeMapView } from './components/GlobeMapView';
 import { LoginView } from './components/LoginView';
 import { MyStampsView } from './components/MyStampsView';
@@ -56,7 +67,7 @@ const INITIAL_DIAMOND_BALANCE = 1500;
 
 const DEFAULT_PROFILE: UserProfile = {
   name: 'Leni Coper',
-  handle: '@leni.passport',
+  handle: '@leni.collector',
   email: 'leni@snapstamps.app',
   initials: 'LC',
   passportCode: 'SS-2026-0419',
@@ -70,6 +81,8 @@ interface PersistedState {
   stamps: StampItem[];
   pockets: StampPocket[];
   posts: SocialPost[];
+  circleMessages: CircleChatMessage[];
+  chatThreads: ChatThread[];
   diamondBalance: number;
   dailyDateKey: string;
   claimedChallengeIds: string[];
@@ -102,6 +115,14 @@ function loadInitialState(): PersistedState {
           stamps: parsed.stamps,
           pockets: parsed.pockets.length > 0 ? parsed.pockets : DEMO_POCKETS,
           posts: parsed.posts,
+          circleMessages:
+            Array.isArray(parsed.circleMessages) && parsed.circleMessages.length > 0
+              ? parsed.circleMessages
+              : DEFAULT_CIRCLE_CHAT,
+          chatThreads:
+            Array.isArray(parsed.chatThreads) && parsed.chatThreads.length > 0
+              ? parsed.chatThreads
+              : DEFAULT_CHAT_THREADS,
           diamondBalance:
             typeof parsed.diamondBalance === 'number'
               ? parsed.diamondBalance
@@ -130,6 +151,8 @@ function loadInitialState(): PersistedState {
     stamps: DEMO_STAMPS,
     pockets: DEMO_POCKETS,
     posts: DEMO_POSTS,
+    circleMessages: DEFAULT_CIRCLE_CHAT,
+    chatThreads: DEFAULT_CHAT_THREADS,
     diamondBalance: INITIAL_DIAMOND_BALANCE,
     dailyDateKey: todayKey,
     claimedChallengeIds: [],
@@ -151,6 +174,11 @@ export default function App() {
   const [stamps, setStamps] = useState<StampItem[]>(initial.stamps);
   const [pockets, setPockets] = useState<StampPocket[]>(initial.pockets);
   const [posts, setPosts] = useState<SocialPost[]>(initial.posts);
+  const [circleMessages] = useState<CircleChatMessage[]>(
+    initial.circleMessages
+  );
+  const [chatThreads, setChatThreads] = useState<ChatThread[]>(initial.chatThreads);
+  const [activeChatThreadId, setActiveChatThreadId] = useState<string | null>(null);
   const [diamondBalance, setDiamondBalance] = useState<number>(
     initial.diamondBalance
   );
@@ -196,7 +224,12 @@ export default function App() {
     return () => window.removeEventListener('gmp-quota-exceeded', onQuotaExceeded);
   }, []);
 
+  const mainScrollRef = useRef<HTMLElement | null>(null);
+  const authScrollRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
+    mainScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    authScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, [activeTab, isAuthenticated, hasOnboarded, showLoginScreen]);
 
@@ -209,6 +242,8 @@ export default function App() {
         stamps,
         pockets,
         posts,
+        circleMessages,
+        chatThreads,
         diamondBalance,
         dailyDateKey: getTodayDateKey(),
         claimedChallengeIds,
@@ -226,6 +261,8 @@ export default function App() {
     stamps,
     pockets,
     posts,
+    circleMessages,
+    chatThreads,
     diamondBalance,
     claimedChallengeIds,
     notifications,
@@ -234,10 +271,18 @@ export default function App() {
 
   const selectedStamp = stamps.find((s) => s.id === selectedStampId) ?? null;
   const unreadNotificationsCount = getUnreadNotificationCount(notifications);
+  const userChatCount =
+    circleMessages.filter((m) => Boolean(m.isSelf)).length +
+    chatThreads.reduce(
+      (sum, thread) =>
+        sum + thread.messages.filter((m) => Boolean(m.isSelf) && m.id.startsWith('msg-')).length,
+      0
+    );
 
   const dailyChallenges = evaluateDailyChallenges({
     stamps,
     posts,
+    chatMessagesCount: userChatCount,
     claimedChallengeIds,
   });
 
@@ -284,6 +329,11 @@ export default function App() {
         assignStampsToFolder(prev, initialStampIds, created.pocket.id)
       );
     }
+  };
+
+  const handleMoveStampToPocket = (stampId: string, targetPocketId: string) => {
+    playHaptic('medium');
+    setStamps((prev) => assignStampsToFolder(prev, [stampId], targetPocketId));
   };
 
   const handleSelectFolderForPurchasedStamp = (pocketId: string) => {
@@ -410,6 +460,76 @@ export default function App() {
     setActiveTab('feed');
   };
 
+  const handleSelectChatThread = (threadId: string | null) => {
+    setActiveChatThreadId(threadId);
+    if (threadId) {
+      setChatThreads((prev) => markChatThreadRead(prev, threadId));
+    }
+  };
+
+  const handleSendThreadMessage = (
+    threadId: string,
+    payload: { text: string; stampId?: string; diamondGiftAmount?: number }
+  ): { success: boolean; reason?: string } => {
+    if (payload.diamondGiftAmount) {
+      const transfer = transferDiamondsInChat(diamondBalance, payload.diamondGiftAmount);
+      if (!transfer.success) {
+        return { success: false, reason: transfer.reason };
+      }
+      setDiamondBalance(transfer.diamondBalance);
+    }
+    playHaptic('medium');
+    setChatThreads((prev) =>
+      sendChatThreadMessage(prev, threadId, {
+        senderName: userProfile.name,
+        senderInitials: userProfile.initials,
+        text: payload.text,
+        stampId: payload.stampId,
+        diamondGiftAmount: payload.diamondGiftAmount,
+      })
+    );
+    return { success: true };
+  };
+
+  const handleToggleThreadFavorite = (threadId: string) => {
+    playHaptic('light');
+    setChatThreads((prev) => toggleChatThreadFavorite(prev, threadId));
+  };
+
+  const handleStartMemberChat = (member: CircleMember) => {
+    playHaptic('light');
+    const existing = chatThreads.find((t) => t.memberId === member.id);
+    if (existing) {
+      handleSelectChatThread(existing.id);
+      return;
+    }
+    const newThread: ChatThread = {
+      id: `thread-${member.id}-${Date.now()}`,
+      memberId: member.id,
+      name: member.name,
+      subtitle: `${member.city} · ${member.isOnline ? 'Active now' : 'Collector'}`,
+      initials: member.initials,
+      avatarTint: member.avatarTint,
+      isFavorite: false,
+      unreadCount: 0,
+      lastTimeLabel: 'Now',
+      messages: [
+        {
+          id: `welcome-${Date.now()}`,
+          senderId: member.id,
+          senderName: member.name,
+          senderInitials: member.initials,
+          senderTint: member.avatarTint,
+          text: `Hey! Happy collecting from ${member.city}. Which stamps are you hunting today?`,
+          timestampLabel: 'Now',
+          dateDividerLabel: 'Today',
+        },
+      ],
+    };
+    setChatThreads((prev) => [newThread, ...prev]);
+    setActiveChatThreadId(newThread.id);
+  };
+
   const pageTransition = shouldReduceMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 }, exit: { opacity: 1 }, transition: { duration: 0 } }
     : {
@@ -423,19 +543,26 @@ export default function App() {
     ? 'screen-login'
     : !hasOnboarded
       ? 'screen-onboarding'
-      : `screen-${activeTab}`;
+      : activeTab === 'feed' && activeChatThreadId
+        ? `screen-feed-${activeChatThreadId}`
+        : `screen-${activeTab}`;
 
   const dockActiveTab: AppTab =
-    activeTab === 'globe'
+    activeTab === 'globe' || activeTab === 'settings' || activeTab === 'edit-profile'
       ? 'profile'
-      : activeTab === 'notifications' || activeTab === 'settings'
+      : activeTab === 'notifications'
         ? 'library'
         : activeTab;
 
+  const hideDockForSubscreen =
+    activeTab === 'stamps' ||
+    activeTab === 'edit-profile' ||
+    (activeTab === 'feed' && activeChatThreadId !== null);
+
   return (
-    <div className="min-h-screen bg-[#F7F7F9] text-[#0A0A0A]">
+    <div className="h-screen w-full overflow-hidden bg-[#F7F7F9] text-[#0A0A0A] touch-none overscroll-none">
       {gmpQuotaExceeded && (
-        <div className="sticky top-0 z-50 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-xs text-amber-900 md:text-sm">
+        <div className="fixed inset-x-0 top-0 z-50 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-xs text-amber-900 md:text-sm">
           <span>
             Google Maps Platform quota reached. If you are the app owner, visit{' '}
             <a
@@ -453,7 +580,12 @@ export default function App() {
 
       <AnimatePresence mode="wait">
         {!isAuthenticated || showLoginScreen ? (
-          <motion.div key={screenKey} {...pageTransition}>
+          <motion.div
+            ref={authScrollRef}
+            key={screenKey}
+            {...pageTransition}
+            className="h-screen w-full overflow-y-auto overflow-x-hidden overscroll-none"
+          >
             <LoginView
               defaultProfile={userProfile}
               onAuthenticated={(nextProfile) => {
@@ -470,7 +602,12 @@ export default function App() {
             />
           </motion.div>
         ) : !hasOnboarded ? (
-          <motion.div key={screenKey} {...pageTransition}>
+          <motion.div
+            ref={authScrollRef}
+            key={screenKey}
+            {...pageTransition}
+            className="h-screen w-full overflow-y-auto overflow-x-hidden overscroll-none"
+          >
             <OnboardingScreen
               featuredStamps={
                 stamps.length >= 2 ? stamps : ONBOARDING_SHOWCASE_STAMPS
@@ -481,7 +618,10 @@ export default function App() {
             />
           </motion.div>
         ) : (
-          <main className="min-h-screen">
+          <main
+            ref={mainScrollRef}
+            className="h-screen w-full overflow-y-auto overflow-x-hidden overscroll-none"
+          >
             <AnimatePresence mode="wait">
               <motion.div key={screenKey} {...pageTransition}>
                 {activeTab === 'library' && (
@@ -497,14 +637,9 @@ export default function App() {
                       setActiveFilter('all');
                       setActiveTab('stamps');
                     }}
-                    onQuickAddToPocket={(pocketId) => {
-                      setStudioPocketId(pocketId);
-                      setStudioEditStamp(null);
-                      setStudioOpen(true);
-                    }}
+                    onMoveStampToPocket={handleMoveStampToPocket}
                     onOpenCreateFolder={() => setCreateFolderOpen(true)}
                     onOpenNotifications={() => setActiveTab('notifications')}
-                    onOpenSettings={() => setActiveTab('settings')}
                     onSelectStamp={(s) => setSelectedStampId(s.id)}
                     onOpenProfile={() => setActiveTab('profile')}
                   />
@@ -536,7 +671,15 @@ export default function App() {
                   <SocialFeedView
                     posts={posts}
                     stamps={stamps}
-                    onBack={() => setActiveTab('library')}
+                    circleMembers={DEFAULT_CIRCLE_MEMBERS}
+                    chatThreads={chatThreads}
+                    activeThreadId={activeChatThreadId}
+                    diamondBalance={diamondBalance}
+                    userProfile={userProfile}
+                    onSelectThread={handleSelectChatThread}
+                    onSendThreadMessage={handleSendThreadMessage}
+                    onToggleThreadFavorite={handleToggleThreadFavorite}
+                    onStartMemberChat={handleStartMemberChat}
                     onToggleLike={handleTogglePostLike}
                     onToggleSave={handleTogglePostSave}
                     onSelectStamp={(s) => setSelectedStampId(s.id)}
@@ -570,14 +713,22 @@ export default function App() {
                     userProfile={userProfile}
                     foldersCount={pockets.length}
                     stampsCount={stamps.filter((s) => s.isUnlocked).length}
-                    onBack={() => setActiveTab('library')}
+                    onBack={() => setActiveTab('profile')}
                     onUpdateSettings={setSettings}
-                    onOpenProfile={() => setActiveTab('profile')}
+                    onOpenEditProfile={() => setActiveTab('edit-profile')}
                     onOpenNotifications={() => setActiveTab('notifications')}
                     onSignOut={() => {
                       setIsAuthenticated(false);
                       setShowLoginScreen(true);
                     }}
+                  />
+                )}
+
+                {activeTab === 'edit-profile' && (
+                  <EditProfileView
+                    profile={userProfile}
+                    onBack={() => setActiveTab('settings')}
+                    onUpdateProfile={setUserProfile}
                   />
                 )}
 
@@ -589,11 +740,11 @@ export default function App() {
                     diamondBalance={diamondBalance}
                     dailyChallenges={dailyChallenges}
                     onBack={() => setActiveTab('library')}
-                    onUpdateProfile={setUserProfile}
                     onSelectStamp={(s) => setSelectedStampId(s.id)}
                     onClaimChallenge={handleClaimChallenge}
                     onOpenGlobe={() => setActiveTab('globe')}
                     onOpenStore={() => setActiveTab('store')}
+                    onOpenSettings={() => setActiveTab('settings')}
                     onSignOut={() => {
                       setIsAuthenticated(false);
                       setShowLoginScreen(true);
@@ -613,29 +764,32 @@ export default function App() {
                 )}
               </motion.div>
             </AnimatePresence>
-
-            {activeTab !== 'stamps' && (
-              <BottomDock
-                activeTab={dockActiveTab}
-                onTabChange={(nextTab) => {
-                  playHaptic('light');
-                  setActiveTab(nextTab);
-                }}
-                onOpenStore={() => {
-                  playHaptic('light');
-                  setActiveTab('store');
-                }}
-              />
-            )}
           </main>
         )}
       </AnimatePresence>
 
+      {isAuthenticated && !showLoginScreen && hasOnboarded && !hideDockForSubscreen && (
+        <BottomDock
+          activeTab={dockActiveTab}
+          onTabChange={(nextTab) => {
+            playHaptic('light');
+            if (nextTab === 'feed') setActiveChatThreadId(null);
+            setActiveTab(nextTab);
+          }}
+          onOpenStore={() => {
+            playHaptic('light');
+            setActiveTab('store');
+          }}
+        />
+      )}
+
       <StampDetailModal
         stamp={selectedStamp}
+        pockets={pockets}
         onClose={() => setSelectedStampId(null)}
         onToggleFavorite={handleToggleFavorite}
         onCollectStamp={handleCollectStamp}
+        onMoveStampToFolder={handleMoveStampToPocket}
         onEditWithGemini={(s) => {
           setSelectedStampId(null);
           setStudioEditStamp(s);
@@ -650,7 +804,7 @@ export default function App() {
           setSelectedStampId(null);
           handleCreatePost(
             s.id,
-            `Added ${s.title} (${s.country}) to my SnapStamps passport!`
+            `Added ${s.title} (${s.country}) to my SnapStamps collection!`
           );
         }}
       />

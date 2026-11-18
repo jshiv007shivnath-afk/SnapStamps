@@ -9,22 +9,34 @@ import {
   createCustomFolder,
   evaluateDailyChallenges,
   evaluateDailyMissions,
+  filterChatThreads,
   filterStamps,
   filterStoreStamps,
+  getChatInboxCounts,
   getCollectionSummary,
   getUnreadNotificationCount,
   haversineDistanceKm,
   markAllNotificationsRead,
+  markChatThreadRead,
   markNotificationRead,
   purchaseStoreStamp,
+  sendChatThreadMessage,
+  toggleChatThreadFavorite,
   toggleStampFavorite,
+  transferDiamondsInChat,
 } from './stampLogic';
 import {
+  DEFAULT_CHAT_THREADS,
   DEFAULT_NOTIFICATIONS,
   DEFAULT_SETTINGS,
   DEMO_POSTS,
   DEMO_STAMPS,
 } from '../data/seedData';
+import {
+  STORE_COUNTRY_STAMPS,
+  STORE_CRICKET_STAMPS,
+  STORE_FOOTBALL_STAMPS,
+} from '../data/storeCatalog';
 import type { SocialPost, StampItem, StampPocket } from '../types/stamp';
 
 const sampleStamps: StampItem[] = [
@@ -224,19 +236,20 @@ test('Daily Missions and Daily Challenges evaluate progress and claim diamond re
   assert.equal(loginMission.isComplete, true);
   assert.equal(favMission.isComplete, true);
 
+  assert.equal(loginMission.rewardDiamonds, 5);
   const claimLogin = claimDailyTaskReward({
     task: loginMission,
     claimedIds: [],
     diamondBalance: 1500,
   });
   assert.equal(claimLogin.claimed, true);
-  assert.equal(claimLogin.diamondBalance, 1650);
+  assert.equal(claimLogin.diamondBalance, 1505);
 
   const posts: SocialPost[] = [
     {
       id: 'user-post-1',
       authorName: 'Leni Coper',
-      authorHandle: '@leni.passport',
+      authorHandle: '@leni',
       authorInitials: 'LC',
       authorTint: '#0A0A0A',
       stampId: 'india-stamp',
@@ -258,14 +271,16 @@ test('Daily Missions and Daily Challenges evaluate progress and claim diamond re
   const shareChallenge = challenges.find((c) => c.id === 'challenge-share-post')!;
   assert.equal(collectChallenge.isComplete, true);
   assert.equal(shareChallenge.isComplete, true);
+  assert.equal(collectChallenge.rewardDiamonds, 10);
+  assert.equal(shareChallenge.rewardDiamonds, 15);
 
   const claimCollect = claimDailyTaskReward({
     task: collectChallenge,
     claimedIds: [],
-    diamondBalance: 1650,
+    diamondBalance: 1505,
   });
   assert.equal(claimCollect.claimed, true);
-  assert.equal(claimCollect.diamondBalance, 1850);
+  assert.equal(claimCollect.diamondBalance, 1515);
 
   // Double-claim rejected
   const updatedChallenges = evaluateDailyChallenges({
@@ -279,7 +294,7 @@ test('Daily Missions and Daily Challenges evaluate progress and claim diamond re
     diamondBalance: claimCollect.diamondBalance,
   });
   assert.equal(doubleClaim.claimed, false);
-  assert.equal(doubleClaim.diamondBalance, 1850);
+  assert.equal(doubleClaim.diamondBalance, 1515);
 });
 
 test('toggleStampFavorite flips favorite flag deterministically', () => {
@@ -364,4 +379,54 @@ test('DEFAULT_NOTIFICATIONS and notification read helpers track unread counts', 
   const allRead = markAllNotificationsRead(oneRead);
   assert.equal(getUnreadNotificationCount(allRead), 0);
 });
+
+test('store catalog provides 50 stamps per section with accurate Kohli #18 and Rohit #45 jerseys', () => {
+  assert.equal(STORE_COUNTRY_STAMPS.length, 50);
+  assert.equal(STORE_CRICKET_STAMPS.length, 50);
+  assert.equal(STORE_FOOTBALL_STAMPS.length, 50);
+
+  const kohli = STORE_CRICKET_STAMPS.find((s) => s.id === 'store-kohli');
+  const rohit = STORE_CRICKET_STAMPS.find((s) => s.id === 'store-rohit');
+  assert.equal(kohli?.jerseyNumber, '18');
+  assert.equal(rohit?.jerseyNumber, '45');
+  assert.ok(kohli?.imageUrl.includes('18'));
+  assert.ok(rohit?.imageUrl.includes('45'));
+});
+
+test('chat inbox filtering, thread messaging, read/favorite toggles, and diamond transfers', () => {
+  const counts = getChatInboxCounts(DEFAULT_CHAT_THREADS);
+  assert.ok(counts.unreadThreadsCount >= 4);
+  assert.ok(counts.favoritesCount >= 4);
+
+  const unreadOnly = filterChatThreads(DEFAULT_CHAT_THREADS, 'unread', '');
+  assert.ok(unreadOnly.every((t) => t.unreadCount > 0));
+
+  const searchMatches = filterChatThreads(DEFAULT_CHAT_THREADS, 'all', 'aarav');
+  assert.equal(searchMatches.length, 1);
+  assert.equal(searchMatches[0].id, 'thread-aarav');
+
+  const markedRead = markChatThreadRead(DEFAULT_CHAT_THREADS, 'thread-aarav');
+  assert.equal(markedRead.find((t) => t.id === 'thread-aarav')?.unreadCount, 0);
+
+  const toggledFav = toggleChatThreadFavorite(markedRead, 'thread-meera');
+  assert.equal(toggledFav.find((t) => t.id === 'thread-meera')?.isFavorite, true);
+
+  const okTransfer = transferDiamondsInChat(200, 25);
+  assert.equal(okTransfer.success, true);
+  assert.equal(okTransfer.diamondBalance, 175);
+
+  const badTransfer = transferDiamondsInChat(10, 25);
+  assert.equal(badTransfer.success, false);
+  assert.equal(badTransfer.reason, 'insufficient_diamonds');
+
+  const updatedThreads = sendChatThreadMessage(toggledFav, 'thread-aarav', {
+    senderName: 'Leni Coper',
+    senderInitials: 'LC',
+    text: '',
+    diamondGiftAmount: 25,
+  });
+  const aaravMessages = updatedThreads.find((t) => t.id === 'thread-aarav')?.messages ?? [];
+  assert.equal(aaravMessages[aaravMessages.length - 1]?.diamondGiftAmount, 25);
+});
+
 

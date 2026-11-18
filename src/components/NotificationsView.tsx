@@ -38,7 +38,7 @@ const CATEGORY_META: Record<
     tintColor: '#047857',
   },
   system: {
-    label: 'Passport',
+    label: 'Account',
     icon: 'notification',
     tintBg: '#F4F4F5',
     tintColor: '#0A0A0A',
@@ -69,13 +69,13 @@ export function NotificationsView({
   return (
     <div className="mx-auto w-full max-w-5xl px-5 pb-36 pt-4 sm:px-8">
       <header className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <BackButton onClick={onBack} ariaLabel="Back to Stamp Library" />
-          <div>
-            <p className="font-body text-[12px] font-normal text-neutral-500">
+          <div className="min-w-0">
+            <p className="font-body whitespace-nowrap text-[12px] font-normal text-neutral-500">
               Updates &amp; Drops
             </p>
-            <h1 className="font-title text-[24px] font-medium tracking-[-0.02em] text-[#0A0A0A] sm:text-[26px]">
+            <h1 className="font-title truncate text-[24px] font-medium tracking-[-0.02em] text-[#0A0A0A] sm:text-[26px]">
               Notifications
             </h1>
           </div>
@@ -95,12 +95,12 @@ export function NotificationsView({
       </header>
 
       {/* Filter Bar */}
-      <div className="no-scrollbar mt-5 -mx-1 overflow-x-auto px-1">
+      <div className="no-scrollbar mt-5 -mx-1 overflow-x-auto overscroll-none px-1">
         <JellyRadio
           items={FILTER_TABS}
           value={filter}
           onChange={(val) => setFilter(val as NotificationFilter)}
-          chipColor="rgba(255, 255, 255, 0.52)"
+          chipColor="rgba(255, 255, 255, 0.84)"
           activeColor="#0A0A0A"
           textColor="#0A0A0A"
           activeTextColor="#FFFFFF"
