@@ -2,18 +2,27 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   assignStampsToFolder,
+  buildDefaultShareCaption,
   buildTravelArcs,
+  buyStreakShield,
+  claimDailyStreakCheckIn,
   claimDailyTaskReward,
+  claimStreakMilestone,
   clearDemoItems,
   collectStamp,
   createCustomFolder,
+  createInitialStreakState,
+  createSocialPostFromStamp,
   evaluateDailyChallenges,
   evaluateDailyMissions,
   filterChatThreads,
   filterStamps,
   filterStoreStamps,
+  formatStampLocationLabel,
   getChatInboxCounts,
   getCollectionSummary,
+  getStreakDaySteps,
+  getStreakMilestones,
   getUnreadNotificationCount,
   haversineDistanceKm,
   markAllNotificationsRead,
@@ -428,5 +437,150 @@ test('chat inbox filtering, thread messaging, read/favorite toggles, and diamond
   const aaravMessages = updatedThreads.find((t) => t.id === 'thread-aarav')?.messages ?? [];
   assert.equal(aaravMessages[aaravMessages.length - 1]?.diamondGiftAmount, 25);
 });
+
+test('Streak Ladder check-in awards Day 3 Mystery Country stamp, blocks duplicate same-day claim, unlocks milestones, and buys shields', () => {
+  const todayKey = '2026-11-19';
+  const initial = createInitialStreakState(new Date('2026-11-19T10:00:00Z'));
+  assert.equal(initial.currentStreak, 2);
+
+  const stepsBefore = getStreakDaySteps(initial, todayKey);
+  assert.equal(stepsBefore.length, 7);
+  assert.equal(stepsBefore[0].status, 'claimed');
+  assert.equal(stepsBefore[1].status, 'claimed');
+  assert.equal(stepsBefore[2].status, 'available');
+  assert.equal(stepsBefore[3].status, 'locked');
+
+  const claimRes = claimDailyStreakCheckIn({
+    streakState: initial,
+    stamps: [],
+    storeCatalog: sampleStoreCatalog,
+    diamondBalance: 100,
+    todayKey,
+  });
+  assert.equal(claimRes.claimed, true);
+  assert.equal(claimRes.claimedDay, 3);
+  assert.equal(claimRes.streakState.currentStreak, 3);
+  assert.equal(claimRes.diamondBalance, 110);
+  assert.equal(claimRes.rewardedStamp?.id, 'store-switzerland');
+  assert.equal(claimRes.stamps.length, 1);
+
+  const dupClaim = claimDailyStreakCheckIn({
+    streakState: claimRes.streakState,
+    stamps: claimRes.stamps,
+    storeCatalog: sampleStoreCatalog,
+    diamondBalance: claimRes.diamondBalance,
+    todayKey,
+  });
+  assert.equal(dupClaim.claimed, false);
+  assert.equal(dupClaim.reason, 'already_checked_in');
+
+  const weekReachedState = { ...claimRes.streakState, currentStreak: 7, bestStreak: 7 };
+  const milestones = getStreakMilestones(weekReachedState);
+  assert.equal(milestones[0].isUnlocked, true);
+  assert.equal(milestones[1].isUnlocked, false);
+
+  const claimedM7 = claimStreakMilestone({
+    streakState: weekReachedState,
+    milestoneId: 'milestone-7d',
+    diamondBalance: 110,
+  });
+  assert.equal(claimedM7.claimed, true);
+  assert.equal(claimedM7.diamondBalance, 130);
+
+  const shieldOk = buyStreakShield({
+    streakState: claimedM7.streakState,
+    diamondBalance: claimedM7.diamondBalance,
+  });
+  assert.equal(shieldOk.success, true);
+  assert.equal(shieldOk.streakState.shields, 2);
+  assert.equal(shieldOk.diamondBalance, 105);
+
+  const shieldOverMax = buyStreakShield({
+    streakState: { ...shieldOk.streakState, shields: 3 },
+    diamondBalance: 500,
+  });
+  assert.equal(shieldOverMax.success, false);
+  assert.equal(shieldOverMax.reason, 'max_shields');
+});
+
+test('createSocialPostFromStamp includes structured metadata, deduplicated location, and default/custom captions', () => {
+  const userProfile = {
+    name: 'Leni Coper',
+    handle: '@leni.collector',
+    initials: 'LC',
+  };
+
+  // Distinct city and country
+  assert.equal(formatStampLocationLabel(sampleStamps[0]), 'Agra, India');
+
+  // Matching city and country deduplication
+  assert.equal(
+    formatStampLocationLabel({ city: 'Singapore', country: 'Singapore' }),
+    'Singapore'
+  );
+
+  const defaultCaption = buildDefaultShareCaption(sampleStamps[0], 'Countries');
+  assert.equal(
+    defaultCaption,
+    'Added India (Common) to my Countries folder.'
+  );
+
+  // Blank caption falls back to auto-generated metadata caption
+  const autoPost = createSocialPostFromStamp({
+    stamp: sampleStamps[0],
+    userProfile,
+    caption: '   ',
+    folderTitle: 'Countries',
+    postId: 'post-auto-1',
+  });
+  assert.equal(autoPost.id, 'post-auto-1');
+  assert.equal(autoPost.stampId, 'india-stamp');
+  assert.equal(autoPost.stampTitle, 'India');
+  assert.equal(autoPost.stampCountry, 'India');
+  assert.equal(autoPost.stampCity, 'Agra');
+  assert.equal(autoPost.stampCategory, 'country');
+  assert.equal(autoPost.stampRarity, 'common');
+  assert.equal(autoPost.folderTitle, 'Countries');
+  assert.equal(autoPost.locationLabel, 'Agra, India');
+  assert.equal(autoPost.caption, 'Added India (Common) to my Countries folder.');
+  assert.equal(autoPost.isLiked, true);
+  assert.equal(autoPost.likesCount, 1);
+
+  // Custom caption + sports stamp metadata
+  const kohliStamp = STORE_CRICKET_STAMPS.find((s) => s.id === 'store-kohli')!;
+  const customPost = createSocialPostFromStamp({
+    stamp: kohliStamp,
+    userProfile,
+    caption: '  Unboxed this legend from my streak drop.  ',
+    folderTitle: 'Sports Legends',
+    postId: 'post-custom-2',
+  });
+  assert.equal(customPost.caption, 'Unboxed this legend from my streak drop.');
+  assert.equal(customPost.stampRarity, kohliStamp.rarity);
+  assert.equal(customPost.stampCategory, 'sports');
+  assert.equal(customPost.folderTitle, 'Sports Legends');
+  assert.equal(customPost.locationLabel, formatStampLocationLabel(kohliStamp));
+  assert.ok(Array.isArray(customPost.stampTags) && customPost.stampTags.includes('Culture'));
+});
+
+test('filterStamps filters by automated themeTag and purchaseStoreStamp auto-tags new stamps', () => {
+  const switzerland = sampleStoreCatalog.find((s) => s.id === 'store-switzerland')!;
+  const purchase = purchaseStoreStamp([], switzerland, 500);
+  assert.equal(purchase.success, true);
+  assert.ok(purchase.purchasedStamp?.tags?.includes('Nature'));
+
+  const combined = [...sampleStamps, purchase.purchasedStamp!];
+  const natureOnly = filterStamps(combined, 'all', '', null, 'Nature');
+  assert.ok(natureOnly.some((s) => s.id === 'store-switzerland'));
+  assert.ok(!natureOnly.some((s) => s.id === 'india-stamp'));
+
+  const historicalOnly = filterStamps(combined, 'all', '', null, 'Historical');
+  assert.ok(historicalOnly.some((s) => s.id === 'india-stamp'));
+
+  const searchByTag = filterStamps(combined, 'all', 'nature');
+  assert.ok(searchByTag.some((s) => s.id === 'store-switzerland'));
+});
+
+
 
 

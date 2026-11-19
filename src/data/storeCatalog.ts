@@ -905,6 +905,7 @@ export const STORE_COUNTRY_STAMPS: StampItem[] = COUNTRY_DEFS.map((d) => ({
     d.imageUrl ||
     buildCountryStampSvg({
       title: d.country,
+      city: d.city,
       skyTop: d.skyTop,
       skyBottom: d.skyBottom,
       sunColor: d.sun,

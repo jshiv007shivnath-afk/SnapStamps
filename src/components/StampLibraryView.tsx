@@ -443,6 +443,7 @@ export function StampLibraryView({
                 <Reicon name="search" size={18} color="#6B7280" />
                 <input
                   id="library-search"
+                  data-testid="home-search-input"
                   type="search"
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}

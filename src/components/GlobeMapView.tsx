@@ -662,18 +662,7 @@ export function GlobeMapView({
                     {activeStamp.city}, {activeStamp.country}
                   </p>
                 </div>
-                <span className="font-mono-nums rounded-full bg-[#F7F7F9] px-3 py-1 text-xs font-semibold text-[#0A0A0A]">
-                  {activeStamp.collectedCount}/{activeStamp.totalInSet}
-                </span>
               </div>
-
-              <p className="mt-3 text-sm leading-relaxed text-neutral-600">
-                {activeStamp.description}
-              </p>
-
-              <p className="font-mono-nums mt-3 text-xs text-neutral-400">
-                {activeStamp.coordinates.lat.toFixed(4)}°, {activeStamp.coordinates.lng.toFixed(4)}°
-              </p>
 
               <div className="mt-4 flex flex-col gap-2">
                 {!activeStamp.isUnlocked ? (

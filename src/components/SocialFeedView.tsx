@@ -9,13 +9,21 @@ import type {
   StampItem,
   UserProfile,
 } from '../types/stamp';
-import { filterChatThreads, getChatInboxCounts } from '../utils/stampLogic';
+import {
+  filterChatThreads,
+  formatStampCategoryLabel,
+  formatStampLocationLabel,
+  formatStampRarityLabel,
+  getChatInboxCounts,
+} from '../utils/stampLogic';
+import { getStampTags } from '../utils/stampTagging';
 import { BackButton } from './BackButton';
 import { DiamondIcon } from './DiamondIcon';
 import { JellyButton } from './JellyButton';
 import { JellyRadio } from './JellyRadio';
 import { PerforatedStampCard } from './PerforatedStampCard';
 import { Reicon } from './Reicon';
+import { ThemeTagPill } from './ThemeTagPill';
 
 interface SocialFeedViewProps {
   posts: SocialPost[];
@@ -25,6 +33,9 @@ interface SocialFeedViewProps {
   activeThreadId: string | null;
   diamondBalance: number;
   userProfile: UserProfile;
+  filterMode?: ChatFilterMode;
+  onFilterModeChange?: (mode: ChatFilterMode) => void;
+  highlightedPostId?: string | null;
   onSelectThread: (threadId: string | null) => void;
   onSendThreadMessage: (
     threadId: string,
@@ -47,6 +58,9 @@ export function SocialFeedView({
   chatThreads,
   activeThreadId,
   diamondBalance,
+  filterMode: controlledFilterMode,
+  onFilterModeChange,
+  highlightedPostId = null,
   onSelectThread,
   onSendThreadMessage,
   onToggleThreadFavorite,
@@ -56,7 +70,13 @@ export function SocialFeedView({
   onSelectStamp,
   onCreatePost,
 }: SocialFeedViewProps) {
-  const [filterMode, setFilterMode] = useState<ChatFilterMode>('all');
+  const [internalFilterMode, setInternalFilterMode] = useState<ChatFilterMode>('all');
+  const filterMode = controlledFilterMode ?? internalFilterMode;
+  const setFilterMode = (nextMode: ChatFilterMode) => {
+    setInternalFilterMode(nextMode);
+    onFilterModeChange?.(nextMode);
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   const [newChatOpen, setNewChatOpen] = useState(false);
 
@@ -85,6 +105,8 @@ export function SocialFeedView({
   const unlockedStamps = stamps.filter((s) => s.isUnlocked);
   const activeSelectedStampId =
     selectedStampId || unlockedStamps[0]?.id || stamps[0]?.id || '';
+  const selectedComposerStamp =
+    stamps.find((s) => s.id === activeSelectedStampId) ?? unlockedStamps[0] ?? stamps[0];
   const attachedStamp = attachedStampId
     ? stamps.find((s) => s.id === attachedStampId)
     : undefined;
@@ -93,7 +115,7 @@ export function SocialFeedView({
     { value: 'all', label: 'All' },
     { value: 'unread', label: unreadThreadsCount > 0 ? `Unread ${unreadThreadsCount}` : 'Unread' },
     { value: 'favorites', label: favoritesCount > 0 ? `Favorites ${favoritesCount}` : 'Favorites' },
-    { value: 'finds', label: 'Finds' },
+    { value: 'finds', label: posts.length > 0 ? `Finds ${posts.length}` : 'Finds' },
   ];
 
   const handleSendText = (e: React.FormEvent) => {
@@ -675,7 +697,7 @@ export function SocialFeedView({
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               onSubmit={handlePublish}
-              className="mt-4 rounded-[24px] bg-white p-5"
+              className="liquid-glass-btn-soft mt-4 rounded-[24px] p-5 ring-1 ring-black/[0.06]"
             >
               <div className="flex items-center justify-between">
                 <h2 className="font-display text-base font-semibold text-[#0A0A0A]">
@@ -685,11 +707,28 @@ export function SocialFeedView({
                   type="button"
                   onClick={() => setComposerOpen(false)}
                   aria-label="Close share composer"
-                  className="liquid-glass-btn flex h-11 w-11 items-center justify-center rounded-full text-[#0A0A0A]"
+                  className="liquid-glass-btn flex h-11 w-11 items-center justify-center rounded-full text-[#0A0A0A] ring-1 ring-black/[0.06]"
                 >
                   <Reicon name="close" size={18} />
                 </JellyButton>
               </div>
+
+              {selectedComposerStamp && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className="liquid-glass-btn inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-[#0A0A0A] ring-1 ring-black/[0.05]">
+                    <Reicon name="map-point" size={12} className="text-neutral-600" />
+                    <span>{formatStampLocationLabel(selectedComposerStamp)}</span>
+                  </span>
+                  <span className="liquid-glass-btn inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-[#0A0A0A] ring-1 ring-black/[0.05]">
+                    <Reicon name="star" size={12} className="text-neutral-600" />
+                    <span>{formatStampRarityLabel(selectedComposerStamp.rarity)}</span>
+                  </span>
+                  <span className="liquid-glass-btn inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-[#0A0A0A] ring-1 ring-black/[0.05]">
+                    <Reicon name="folder" size={12} className="text-neutral-600" />
+                    <span>{formatStampCategoryLabel(selectedComposerStamp.category)}</span>
+                  </span>
+                </div>
+              )}
 
               <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
@@ -703,7 +742,7 @@ export function SocialFeedView({
                     id="share-stamp-select"
                     value={activeSelectedStampId}
                     onChange={(e) => setSelectedStampId(e.target.value)}
-                    className="mt-1.5 h-11 w-full rounded-2xl bg-[#F7F7F9] px-3 text-sm font-medium text-[#0A0A0A] focus:outline-2 focus:outline-[#0A0A0A]"
+                    className="mt-1.5 h-11 w-full rounded-2xl bg-white/90 px-3 text-sm font-medium text-[#0A0A0A] ring-1 ring-black/[0.06] focus:outline-2 focus:outline-[#0A0A0A]"
                   >
                     {unlockedStamps.length === 0 && stamps.length === 0 ? (
                       <option value="">No collected stamps yet</option>
@@ -733,7 +772,7 @@ export function SocialFeedView({
                       if (errorMsg) setErrorMsg('');
                     }}
                     placeholder="Share the story behind this stamp..."
-                    className="mt-1.5 h-11 w-full rounded-2xl bg-[#F7F7F9] px-3.5 text-sm text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-2 focus:outline-[#0A0A0A]"
+                    className="mt-1.5 h-11 w-full rounded-2xl bg-white/90 px-3.5 text-sm text-[#0A0A0A] placeholder:text-neutral-400 ring-1 ring-black/[0.06] focus:outline-2 focus:outline-[#0A0A0A]"
                   />
                 </div>
               </div>
@@ -754,7 +793,7 @@ export function SocialFeedView({
           )}
 
           {posts.length === 0 ? (
-            <div className="liquid-glass-btn-soft mt-4 rounded-[24px] p-10 text-center">
+            <div className="liquid-glass-btn-soft mt-4 rounded-[24px] p-10 text-center ring-1 ring-black/[0.06]">
               <p className="font-display text-base font-semibold text-[#0A0A0A]">
                 No rare finds shared yet
               </p>
@@ -765,39 +804,101 @@ export function SocialFeedView({
           ) : (
             <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
               {posts.map((post) => {
-                const stamp = stamps.find((s) => s.id === post.stampId) ?? stamps[0];
+                const stamp =
+                  stamps.find((s) => s.id === post.stampId) ??
+                  STORE_CATALOG.find((s) => s.id === post.stampId) ??
+                  stamps[0];
+                const isRecentlyShared = highlightedPostId === post.id;
+                const resolvedLocation =
+                  post.locationLabel ||
+                  (stamp ? formatStampLocationLabel(stamp) : 'World Collection');
+                const resolvedRarity = post.stampRarity
+                  ? formatStampRarityLabel(post.stampRarity)
+                  : stamp
+                    ? formatStampRarityLabel(stamp.rarity)
+                    : null;
+                const resolvedFolder =
+                  post.folderTitle ||
+                  (post.stampCategory
+                    ? formatStampCategoryLabel(post.stampCategory)
+                    : stamp
+                      ? formatStampCategoryLabel(stamp.category)
+                      : null);
+                const resolvedPrimaryTag =
+                  post.stampTags?.[0] ?? (stamp ? getStampTags(stamp)[0] : null);
+
                 return (
-                  <article
+                  <motion.article
                     key={post.id}
-                    className="flex flex-col justify-between rounded-[24px] bg-white p-5"
+                    data-testid="social-post-card"
+                    data-post-id={post.id}
+                    initial={isRecentlyShared ? { opacity: 0, y: 12, scale: 0.98 } : false}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+                    className={`liquid-glass-btn flex flex-col justify-between rounded-[24px] p-5 ring-1 ${
+                      isRecentlyShared ? 'ring-[#2563EB]/35' : 'ring-black/[0.06]'
+                    }`}
                   >
                     <div>
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                          style={{ backgroundColor: post.authorTint }}
-                        >
-                          {post.authorInitials}
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                            style={{ backgroundColor: post.authorTint }}
+                          >
+                            {post.authorInitials}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-[#0A0A0A]">
+                              {post.authorName}
+                            </p>
+                            <p className="truncate text-xs text-neutral-500">
+                              {post.authorHandle} · {post.timestampLabel}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-[#0A0A0A]">
-                            {post.authorName}
-                          </p>
-                          <p className="truncate text-xs text-neutral-500">
-                            {post.timestampLabel}
-                          </p>
-                        </div>
+
+                        {isRecentlyShared && (
+                          <span
+                            data-testid="just-shared-badge"
+                            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#2563EB]/10 px-2.5 py-1 text-[11px] font-semibold text-[#2563EB]"
+                          >
+                            <Reicon name="check" size={12} />
+                            <span>Just shared</span>
+                          </span>
+                        )}
                       </div>
 
-                      <p className="mt-3 text-xs font-medium text-neutral-500">
-                        {post.locationLabel}
-                      </p>
+                      {/* Structured Liquid-Glass Metadata & Location Pills */}
+                      <div
+                        className="mt-3 flex flex-wrap items-center gap-1.5"
+                        aria-label="Stamp location and metadata"
+                      >
+                        <span className="liquid-glass-btn-soft inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-medium text-[#0A0A0A] ring-1 ring-black/[0.05]">
+                          <Reicon name="map-point" size={12} className="text-neutral-600" />
+                          <span>{resolvedLocation}</span>
+                        </span>
+                        {resolvedPrimaryTag && (
+                          <ThemeTagPill tag={resolvedPrimaryTag} variant="soft" />
+                        )}
+                        {resolvedRarity && (
+                          <span className="liquid-glass-btn-soft inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-medium text-neutral-700 ring-1 ring-black/[0.05]">
+                            <Reicon name="star" size={12} className="text-neutral-600" />
+                            <span>{resolvedRarity}</span>
+                          </span>
+                        )}
+                        {resolvedFolder && (
+                          <span className="liquid-glass-btn-soft inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-medium text-neutral-700 ring-1 ring-black/[0.05]">
+                            <Reicon name="folder" size={12} className="text-neutral-600" />
+                            <span>{resolvedFolder}</span>
+                          </span>
+                        )}
+                      </div>
 
                       {stamp && (
-                        <div className="mx-auto mt-3 w-[216px]">
+                        <div className="mx-auto mt-3.5 w-[216px]">
                           <PerforatedStampCard
                             stamp={stamp}
-                            compact
                             showProgress={false}
                             onSelect={onSelectStamp}
                           />
@@ -809,7 +910,7 @@ export function SocialFeedView({
                       </p>
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between border-t border-black/5 pt-3">
+                    <div className="mt-4 flex items-center justify-between border-t border-black/[0.06] pt-3">
                       <JellyButton
                         type="button"
                         onClick={() => onToggleLike(post.id)}
@@ -818,7 +919,7 @@ export function SocialFeedView({
                             ? `Unlike ${post.authorName}'s post`
                             : `Like ${post.authorName}'s post`
                         }
-                        className={`liquid-glass-btn flex h-11 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold ${
+                        className={`liquid-glass-btn-soft flex h-11 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold ring-1 ring-black/[0.05] ${
                           post.isLiked ? 'text-[#D64527]' : 'text-[#0A0A0A]'
                         }`}
                       >
@@ -834,7 +935,7 @@ export function SocialFeedView({
                         type="button"
                         onClick={() => onToggleSave(post.id)}
                         aria-label={post.isSaved ? 'Remove bookmark' : 'Bookmark find'}
-                        className="liquid-glass-btn flex h-11 w-11 items-center justify-center rounded-full text-[#0A0A0A]"
+                        className="liquid-glass-btn-soft flex h-11 w-11 items-center justify-center rounded-full text-[#0A0A0A] ring-1 ring-black/[0.05]"
                       >
                         <Reicon
                           name="bookmark"
@@ -843,7 +944,7 @@ export function SocialFeedView({
                         />
                       </JellyButton>
                     </div>
-                  </article>
+                  </motion.article>
                 );
               })}
             </div>

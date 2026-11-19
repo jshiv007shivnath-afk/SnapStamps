@@ -187,6 +187,37 @@
   mask-composite: add;
 }
 
+/* Smooth 5-second GPU-accelerated navigation bar icon loop animation */
+@keyframes navIconSmoothLoop {
+  0%,
+  64%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  18% {
+    transform: translate3d(0, -3.5px, 0) scale(1.14) rotate(-6deg);
+  }
+  34% {
+    transform: translate3d(0, -2px, 0) scale(1.1) rotate(5deg);
+  }
+  50% {
+    transform: translate3d(0, 0.5px, 0) scale(0.97) rotate(0deg);
+  }
+}
+
+.nav-icon-loop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  will-change: transform;
+  animation-name: navIconSmoothLoop;
+  animation-duration: 2.2s;
+  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  animation-iteration-count: 2;
+  animation-fill-mode: both;
+}
+
 /* Safe area support for modern iOS viewports */
 .pb-safe-dock {
   padding-bottom: max(14px, env(safe-area-inset-bottom));

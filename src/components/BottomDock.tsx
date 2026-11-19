@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import type { AppTab } from '../types/stamp';
+import { getNavIconLoopDelaySec } from '../utils/entryLoopLogic';
 import { GlassSurface } from './GlassSurface';
 import { JellyButton } from './JellyButton';
 import { JellyRadio } from './JellyRadio';
@@ -9,38 +10,58 @@ interface BottomDockProps {
   activeTab: AppTab;
   onTabChange: (tab: AppTab) => void;
   onOpenStore: () => void;
+  animateIcons?: boolean;
+  animationRunId?: number;
 }
 
 // Navigation order:
-// 1. Library (Home) | 2. Travelers Circle (Chat) | 3. Profile (User) + Right Circle: Store
+// 1. Library (Home) | 2. Streaks (Flame) | 3. Chats (Circle) | 4. Profile (User) + Right Circle: Store
 const DOCK_ITEMS: Array<{ id: AppTab; label: string; icon: ReiconName }> = [
   { id: 'library', label: 'Library', icon: 'home' },
+  { id: 'streaks', label: 'Streaks', icon: 'flame' },
   { id: 'feed', label: 'Circle', icon: 'chat' },
   { id: 'profile', label: 'Profile', icon: 'user' },
 ];
 
-export function BottomDock({ activeTab, onTabChange, onOpenStore }: BottomDockProps) {
+export function BottomDock({
+  activeTab,
+  onTabChange,
+  onOpenStore,
+  animateIcons = false,
+  animationRunId = 0,
+}: BottomDockProps) {
   const isStoreActive = activeTab === 'store';
   const radioValue = isStoreActive ? '__none__' : activeTab;
 
-  const radioItems = DOCK_ITEMS.map((item) => {
+  const radioItems = DOCK_ITEMS.map((item, idx) => {
     const isActive = activeTab === item.id;
+    const delaySec = getNavIconLoopDelaySec(idx);
     return {
       value: item.id,
       icon: (
-        <Reicon
-          name={item.icon}
-          size={19}
-          weight={isActive ? 'Filled' : 'Outline'}
-        />
+        <span
+          key={animateIcons ? `${item.id}-loop-${animationRunId}` : `${item.id}-idle`}
+          data-nav-icon-animating={animateIcons ? 'true' : 'false'}
+          className={animateIcons ? 'nav-icon-loop' : 'inline-flex items-center justify-center'}
+          style={animateIcons ? { animationDelay: `${delaySec}s` } : undefined}
+        >
+          <Reicon
+            name={item.icon}
+            size={19}
+            weight={isActive ? 'Filled' : 'Outline'}
+          />
+        </span>
       ),
       label: <span className="sr-only sm:not-sr-only">{item.label}</span>,
     };
   });
 
+  const storeDelaySec = getNavIconLoopDelaySec(DOCK_ITEMS.length);
+
   const navContent = (
     <nav
       aria-label="Primary navigation"
+      data-nav-loop-active={animateIcons ? 'true' : 'false'}
       className="fixed-bottom-dock fixed inset-x-0 bottom-0 z-50 touch-none pointer-events-none flex items-center justify-center gap-2.5 px-4 pb-safe-dock pt-2"
     >
       {/* Floating React Bits GlassSurface + JellyRadio 4-Tab Navigation Pill */}
@@ -106,11 +127,18 @@ export function BottomDock({ activeTab, onTabChange, onOpenStore }: BottomDockPr
               : 'liquid-glass-btn text-[#0A0A0A]'
           }`}
         >
-          <Reicon
-            name="store"
-            size={21}
-            weight={isStoreActive ? 'Filled' : 'Outline'}
-          />
+          <span
+            key={animateIcons ? `store-loop-${animationRunId}` : 'store-idle'}
+            data-nav-icon-animating={animateIcons ? 'true' : 'false'}
+            className={animateIcons ? 'nav-icon-loop' : 'inline-flex items-center justify-center'}
+            style={animateIcons ? { animationDelay: `${storeDelaySec}s` } : undefined}
+          >
+            <Reicon
+              name="store"
+              size={21}
+              weight={isStoreActive ? 'Filled' : 'Outline'}
+            />
+          </span>
         </JellyButton>
       </GlassSurface>
     </nav>

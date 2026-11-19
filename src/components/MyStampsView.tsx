@@ -1,13 +1,20 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import type { CollectionFilter, StampItem, StampPocket } from '../types/stamp';
+import type {
+  CollectionFilter,
+  StampItem,
+  StampPocket,
+  StampThemeTag,
+} from '../types/stamp';
 import { filterStamps } from '../utils/stampLogic';
+import { STAMP_THEME_TAGS } from '../utils/stampTagging';
 import { BackButton } from './BackButton';
 import { JellyButton } from './JellyButton';
 import { JellyRadio } from './JellyRadio';
 import { PerforatedStampCard } from './PerforatedStampCard';
 import { Reicon } from './Reicon';
+import { getThemeTagIcon } from './ThemeTagPill';
 
 interface MyStampsViewProps {
   stamps: StampItem[];
@@ -48,8 +55,15 @@ export function MyStampsView({
   onOpenStore,
 }: MyStampsViewProps) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const [activeThemeTag, setActiveThemeTag] = useState<'all' | StampThemeTag>('all');
 
-  const filteredStamps = filterStamps(stamps, activeFilter, searchQuery, activePocketId);
+  const filteredStamps = filterStamps(
+    stamps,
+    activeFilter,
+    searchQuery,
+    activePocketId,
+    activeThemeTag
+  );
   const activePocket = activePocketId ? pockets.find((p) => p.id === activePocketId) : null;
 
   return (
@@ -93,7 +107,7 @@ export function MyStampsView({
                   type="search"
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  placeholder="Filter by city, country, or rarity..."
+                  placeholder="Filter by city, country, tag, or rarity..."
                   className="w-full bg-transparent text-sm text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-none"
                 />
                 {searchQuery && (
@@ -157,6 +171,47 @@ export function MyStampsView({
           stiffness={620}
           ariaLabel="Filter stamp collections"
         />
+      </div>
+
+      {/* Automated Location Theme Tag Filter Row */}
+      <div
+        data-testid="theme-tag-filters"
+        role="group"
+        aria-label="Filter stamps by theme tag"
+        className="no-scrollbar mt-2.5 -mx-1 flex items-center gap-1.5 overflow-x-auto overscroll-none px-1 py-0.5"
+      >
+        <JellyButton
+          type="button"
+          onClick={() => setActiveThemeTag('all')}
+          aria-pressed={activeThemeTag === 'all'}
+          className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors ${
+            activeThemeTag === 'all'
+              ? 'bg-[#0A0A0A] text-white'
+              : 'liquid-glass-btn text-neutral-700 ring-1 ring-black/[0.05] hover:text-[#0A0A0A]'
+          }`}
+        >
+          <span>All Tags</span>
+        </JellyButton>
+        {STAMP_THEME_TAGS.map((tag) => {
+          const isSelected = activeThemeTag === tag;
+          return (
+            <JellyButton
+              key={tag}
+              type="button"
+              data-testid={`filter-tag-${tag.toLowerCase()}`}
+              onClick={() => setActiveThemeTag(isSelected ? 'all' : tag)}
+              aria-pressed={isSelected}
+              className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors ${
+                isSelected
+                  ? 'bg-[#0A0A0A] text-white'
+                  : 'liquid-glass-btn text-neutral-700 ring-1 ring-black/[0.05] hover:text-[#0A0A0A]'
+              }`}
+            >
+              <Reicon name={getThemeTagIcon(tag)} size={13} />
+              <span>{tag}</span>
+            </JellyButton>
+          );
+        })}
       </div>
 
       {/* Stamp Grid (2 columns mobile matching Reference Screen 3, 3-4 columns desktop) */}

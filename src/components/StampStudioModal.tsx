@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import type { StampCategory, StampItem, StampPocket } from '../types/stamp';
+import { buildCustomTravelStampSvg } from '../utils/stampArtGenerator';
+import { classifyStampLocationTags } from '../utils/stampTagging';
 import { JellyButton } from './JellyButton';
 import { JellyRadio } from './JellyRadio';
 import { Reicon } from './Reicon';
+import { ThemeTagPill } from './ThemeTagPill';
 
 interface StampStudioModalProps {
   isOpen: boolean;
@@ -19,24 +22,6 @@ interface StampStudioModalProps {
 type StudioMode = 'create' | 'edit';
 
 const STYLE_PRESETS = ['Vintage Risograph', 'Warm Gouache', 'Mediterranean Poster', 'Minimalist Woodcut'];
-
-function buildProceduralStampArt(title: string, color: string): string {
-  const safeTitle = title.replace(/[<>&"']/g, '').slice(0, 18) || 'Travel';
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400">
-    <defs>
-      <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#D9EEF5"/>
-        <stop offset="100%" stop-color="${color}"/>
-      </linearGradient>
-    </defs>
-    <rect width="300" height="400" fill="url(#g)"/>
-    <circle cx="215" cy="96" r="36" fill="#F27830"/>
-    <path d="M0 300 Q75 240 150 280 T300 265 L300 400 L0 400 Z" fill="#1F3A3D" opacity="0.9"/>
-    <path d="M0 335 Q90 310 180 335 T300 325 L300 400 L0 400 Z" fill="#132629"/>
-    <text x="150" y="366" text-anchor="middle" fill="#FFFFFF" font-family="'Zilla Slab', 'Arvo', serif" font-size="14" font-weight="700" opacity="0.72">${safeTitle.toUpperCase()}</text>
-  </svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-}
 
 export function StampStudioModal({
   isOpen,
@@ -64,6 +49,25 @@ export function StampStudioModal({
   if (!isOpen) return null;
 
   const targetEditStamp = stamps.find((s) => s.id === editTargetId) ?? stamps[0];
+  const autoTagResult = classifyStampLocationTags({
+    title,
+    city: title,
+    country,
+    category,
+    description: prompt,
+  });
+
+  const liveVectorArt = buildCustomTravelStampSvg({
+    title: title.trim() || (mode === 'edit' ? targetEditStamp?.title : '') || 'Travel',
+    country: country.trim() || (mode === 'edit' ? targetEditStamp?.country : ''),
+    city: title.trim() || (mode === 'edit' ? targetEditStamp?.city : ''),
+    category: mode === 'edit' ? targetEditStamp?.category ?? category : category,
+    themeTag: autoTagResult.primaryTag,
+    stylePreset,
+  });
+
+  const displayedPreviewUrl =
+    previewUrl || (mode === 'create' ? liveVectorArt : targetEditStamp?.imageUrl || '');
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,9 +153,8 @@ export function StampStudioModal({
 
   const handleUseVectorPreview = () => {
     setErrorMsg('');
-    const art = buildProceduralStampArt(title || targetEditStamp?.title || 'Custom', '#F4B886');
-    setPreviewUrl(art);
-    setNoticeMsg('Applied crisp studio vector preview.');
+    setPreviewUrl(liveVectorArt);
+    setNoticeMsg('Applied bespoke collector poster vector artwork.');
   };
 
   const handleSave = () => {
@@ -160,7 +163,7 @@ export function StampStudioModal({
         setErrorMsg('Please enter a destination title for your stamp.');
         return;
       }
-      const art = previewUrl || buildProceduralStampArt(title.trim(), '#98D4DC');
+      const art = previewUrl || liveVectorArt;
       const newStamp: StampItem = {
         id: `custom-${Date.now()}`,
         title: title.trim(),
@@ -181,6 +184,7 @@ export function StampStudioModal({
         unlockedAt: 'Nov 2026',
         isCustomGenerated: true,
         isDemoSeed: false,
+        tags: autoTagResult.tags,
       };
       onSaveNewStamp(newStamp);
       onClose();
@@ -348,6 +352,29 @@ export function StampStudioModal({
                     ))}
                   </select>
                 </div>
+
+                {/* Live Automated Location Tagging Preview */}
+                <div
+                  data-testid="studio-auto-tag-preview"
+                  className="liquid-glass-btn-soft flex flex-wrap items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 ring-1 ring-black/[0.05]"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Reicon name="map-point" size={14} className="text-neutral-600" />
+                    <span className="text-[11.5px] font-semibold text-neutral-600">
+                      Auto-Tag
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {autoTagResult.tags.map((tag) => (
+                      <ThemeTagPill
+                        key={tag}
+                        tag={tag}
+                        variant="glass"
+                        testId={`studio-tag-${tag.toLowerCase()}`}
+                      />
+                    ))}
+                  </div>
+                </div>
               </>
             ) : (
               <div>
@@ -442,9 +469,9 @@ export function StampStudioModal({
                     style={{ backgroundColor: '#F3D2B3' }}
                   >
                     <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[3px] bg-[#FAF6EE] ring-1 ring-inset ring-black/10">
-                      {previewUrl ? (
+                      {displayedPreviewUrl ? (
                         <img
-                          src={previewUrl}
+                          src={displayedPreviewUrl}
                           alt="Generated stamp preview"
                           referrerPolicy="no-referrer"
                           className="h-full w-full object-cover"

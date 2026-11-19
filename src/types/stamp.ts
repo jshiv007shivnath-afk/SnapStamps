@@ -1,5 +1,6 @@
 export type AppTab =
   | 'library'
+  | 'streaks'
   | 'stamps'
   | 'feed'
   | 'profile'
@@ -18,6 +19,8 @@ export type StoreSectionFilter = 'all' | 'country' | 'sports';
 export type SportDisciplineFilter = 'all' | 'cricket' | 'football';
 
 export type StampCategory = 'country' | 'city' | 'landmark' | 'sports';
+
+export type StampThemeTag = 'Nature' | 'Urban' | 'Culture' | 'Historical';
 
 export type StampRarity = 'common' | 'rare' | 'legendary';
 
@@ -63,6 +66,8 @@ export interface StampItem {
   celebrationLabel?: string;
   jerseyNumber?: string;
   priceDiamonds?: number;
+  // Automated location-derived theme tags
+  tags?: StampThemeTag[];
 }
 
 export interface StampPocket {
@@ -90,6 +95,13 @@ export interface SocialPost {
   authorInitials: string;
   authorTint: string;
   stampId: string;
+  stampTitle?: string;
+  stampCountry?: string;
+  stampCity?: string;
+  stampCategory?: StampCategory;
+  stampRarity?: StampRarity;
+  stampTags?: StampThemeTag[];
+  folderTitle?: string;
   caption: string;
   locationLabel: string;
   timestampLabel: string;
@@ -187,5 +199,35 @@ export interface ChatThread {
   unreadCount: number;
   lastTimeLabel: string;
   messages: ChatMessageItem[];
+}
+
+export interface StreakState {
+  currentStreak: number;
+  bestStreak: number;
+  lastCheckInDate: string | null;
+  shields: number;
+  claimedMilestoneIds: string[];
+  totalCheckIns: number;
+}
+
+export interface StreakDayStep {
+  day: number;
+  title: string;
+  subtitle: string;
+  rewardDiamonds: number;
+  grantsStampSection?: 'country' | 'sports';
+  isGrandReward?: boolean;
+  status: 'claimed' | 'available' | 'locked';
+}
+
+export interface StreakMilestoneStep {
+  id: string;
+  targetDays: number;
+  title: string;
+  subtitle: string;
+  rewardDiamonds: number;
+  progress: number;
+  isUnlocked: boolean;
+  isClaimed: boolean;
 }
 

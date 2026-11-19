@@ -8,18 +8,27 @@ import type {
   PocketTint,
   SocialPost,
   SportDisciplineFilter,
+  StampCategory,
   StampCoordinates,
   StampItem,
   StampPocket,
+  StampRarity,
+  StampThemeTag,
   StoreSectionFilter,
+  StreakDayStep,
+  StreakMilestoneStep,
+  StreakState,
   TravelArc,
+  UserProfile,
 } from '../types/stamp';
+import { ensureStampTags, getStampTags } from './stampTagging';
 
 export function filterStamps(
   stamps: StampItem[],
   filter: CollectionFilter,
   searchQuery: string,
-  pocketId?: string | null
+  pocketId?: string | null,
+  themeTag?: StampThemeTag | 'all' | null
 ): StampItem[] {
   const q = searchQuery.trim().toLowerCase();
 
@@ -38,8 +47,13 @@ export function filterStamps(
       return false;
     }
 
+    const resolvedTags = getStampTags(stamp);
+    if (themeTag && themeTag !== 'all' && !resolvedTags.includes(themeTag)) {
+      return false;
+    }
+
     if (q) {
-      const haystack = `${stamp.title} ${stamp.city} ${stamp.country} ${stamp.category} ${stamp.rarity} ${stamp.celebrationLabel ?? ''} ${stamp.sportDiscipline ?? ''}`.toLowerCase();
+      const haystack = `${stamp.title} ${stamp.city} ${stamp.country} ${stamp.category} ${stamp.rarity} ${resolvedTags.join(' ')} ${stamp.celebrationLabel ?? ''} ${stamp.sportDiscipline ?? ''}`.toLowerCase();
       return haystack.includes(q);
     }
 
@@ -110,14 +124,14 @@ export function purchaseStoreStamp(
     };
   }
 
-  const ownedStamp: StampItem = {
+  const ownedStamp: StampItem = ensureStampTags({
     ...storeStamp,
     pocketId: targetPocketId || storeStamp.pocketId || 'countries',
     isUnlocked: true,
     collectedCount: Math.max(1, storeStamp.collectedCount),
     unlockedAt,
     isDemoSeed: false,
-  };
+  });
 
   const nextStamps = existing
     ? currentStamps.map((s) => (s.id === storeStamp.id ? ownedStamp : s))
@@ -510,4 +524,409 @@ export function sendChatThreadMessage(
     };
   });
 }
+
+export const STREAK_SHIELD_COST = 25;
+export const MAX_STREAK_SHIELDS = 3;
+
+interface StreakDayTemplate {
+  day: number;
+  title: string;
+  subtitle: string;
+  rewardDiamonds: number;
+  grantsStampSection?: 'country' | 'sports';
+  isGrandReward?: boolean;
+}
+
+const WEEKLY_STREAK_TEMPLATES: StreakDayTemplate[] = [
+  {
+    day: 1,
+    title: 'Day 1',
+    subtitle: 'Daily Kickoff Bonus',
+    rewardDiamonds: 5,
+  },
+  {
+    day: 2,
+    title: 'Day 2',
+    subtitle: 'Collector Momentum',
+    rewardDiamonds: 10,
+  },
+  {
+    day: 3,
+    title: 'Day 3',
+    subtitle: 'Mystery Country Stamp + Bonus',
+    rewardDiamonds: 10,
+    grantsStampSection: 'country',
+  },
+  {
+    day: 4,
+    title: 'Day 4',
+    subtitle: 'Midweek Vault Boost',
+    rewardDiamonds: 15,
+  },
+  {
+    day: 5,
+    title: 'Day 5',
+    subtitle: 'Dedicated Explorer Bonus',
+    rewardDiamonds: 15,
+  },
+  {
+    day: 6,
+    title: 'Day 6',
+    subtitle: 'Pre-Finale Diamond Drop',
+    rewardDiamonds: 20,
+  },
+  {
+    day: 7,
+    title: 'Day 7',
+    subtitle: 'Guaranteed Sports Legend + Bonus',
+    rewardDiamonds: 25,
+    grantsStampSection: 'sports',
+    isGrandReward: true,
+  },
+];
+
+const STREAK_MILESTONE_TEMPLATES = [
+  {
+    id: 'milestone-7d',
+    targetDays: 7,
+    title: '7-Day Habit',
+    subtitle: 'Complete your first full week climb',
+    rewardDiamonds: 20,
+  },
+  {
+    id: 'milestone-14d',
+    targetDays: 14,
+    title: '14-Day Explorer',
+    subtitle: 'Two unbroken weeks of collecting',
+    rewardDiamonds: 35,
+  },
+  {
+    id: 'milestone-21d',
+    targetDays: 21,
+    title: '21-Day Curator',
+    subtitle: 'Habit locked in across three weeks',
+    rewardDiamonds: 50,
+  },
+  {
+    id: 'milestone-30d',
+    targetDays: 30,
+    title: '30-Day Vault Master',
+    subtitle: 'Full month collector mastery payout',
+    rewardDiamonds: 100,
+  },
+];
+
+export function getYesterdayDateKey(date = new Date()): string {
+  const prev = new Date(date.getTime());
+  prev.setDate(prev.getDate() - 1);
+  return getTodayDateKey(prev);
+}
+
+export function createInitialStreakState(today = new Date()): StreakState {
+  return {
+    currentStreak: 2,
+    bestStreak: 2,
+    lastCheckInDate: getYesterdayDateKey(today),
+    shields: 1,
+    claimedMilestoneIds: [],
+    totalCheckIns: 2,
+  };
+}
+
+export function hasCheckedInToday(streakState: StreakState, todayKey: string): boolean {
+  return streakState.lastCheckInDate === todayKey;
+}
+
+export function getActiveCycleDay(streakState: StreakState, todayKey: string): number {
+  const checkedToday = hasCheckedInToday(streakState, todayKey);
+  if (checkedToday) {
+    return ((Math.max(1, streakState.currentStreak) - 1) % 7) + 1;
+  }
+  return (streakState.currentStreak % 7) + 1;
+}
+
+export function getStreakDaySteps(
+  streakState: StreakState,
+  todayKey: string
+): StreakDayStep[] {
+  const checkedToday = hasCheckedInToday(streakState, todayKey);
+  const completedInCycle = checkedToday
+    ? ((Math.max(1, streakState.currentStreak) - 1) % 7) + 1
+    : streakState.currentStreak % 7;
+
+  return WEEKLY_STREAK_TEMPLATES.map((tpl) => {
+    let status: StreakDayStep['status'] = 'locked';
+    if (tpl.day <= completedInCycle) {
+      status = 'claimed';
+    } else if (!checkedToday && tpl.day === completedInCycle + 1) {
+      status = 'available';
+    }
+    return {
+      ...tpl,
+      status,
+    };
+  });
+}
+
+export function getStreakMilestones(streakState: StreakState): StreakMilestoneStep[] {
+  const claimed = new Set(streakState.claimedMilestoneIds);
+  const effectiveBest = Math.max(streakState.currentStreak, streakState.bestStreak);
+
+  return STREAK_MILESTONE_TEMPLATES.map((tpl) => ({
+    ...tpl,
+    progress: Math.min(effectiveBest, tpl.targetDays),
+    isUnlocked: effectiveBest >= tpl.targetDays,
+    isClaimed: claimed.has(tpl.id),
+  }));
+}
+
+export function claimDailyStreakCheckIn({
+  streakState,
+  stamps,
+  storeCatalog,
+  diamondBalance,
+  todayKey,
+  unlockedAtLabel = 'Nov 2026',
+}: {
+  streakState: StreakState;
+  stamps: StampItem[];
+  storeCatalog: StampItem[];
+  diamondBalance: number;
+  todayKey: string;
+  unlockedAtLabel?: string;
+}): {
+  claimed: boolean;
+  reason?: 'already_checked_in';
+  streakState: StreakState;
+  stamps: StampItem[];
+  diamondBalance: number;
+  addedDiamonds: number;
+  claimedDay: number;
+  rewardedStamp?: StampItem;
+} {
+  if (hasCheckedInToday(streakState, todayKey)) {
+    return {
+      claimed: false,
+      reason: 'already_checked_in',
+      streakState,
+      stamps,
+      diamondBalance,
+      addedDiamonds: 0,
+      claimedDay: getActiveCycleDay(streakState, todayKey),
+    };
+  }
+
+  const nextStreak = streakState.currentStreak + 1;
+  const cycleDay = ((nextStreak - 1) % 7) + 1;
+  const template = WEEKLY_STREAK_TEMPLATES[cycleDay - 1] ?? WEEKLY_STREAK_TEMPLATES[0];
+
+  let nextStamps = stamps;
+  let rewardedStamp: StampItem | undefined;
+
+  if (template.grantsStampSection) {
+    const ownedIds = new Set(stamps.filter((s) => s.isUnlocked).map((s) => s.id));
+    const candidates = storeCatalog.filter((item) => {
+      if (ownedIds.has(item.id)) return false;
+      if (template.grantsStampSection === 'country') return item.category === 'country';
+      return item.category === 'sports';
+    });
+    const pick = candidates[0];
+    if (pick) {
+      const targetPocketId = pick.category === 'sports' ? 'sports-vault' : 'countries';
+      rewardedStamp = ensureStampTags({
+        ...pick,
+        isUnlocked: true,
+        collectedCount: Math.max(1, pick.collectedCount),
+        unlockedAt: unlockedAtLabel,
+        pocketId: targetPocketId,
+        isDemoSeed: false,
+      });
+      const existsIdx = stamps.findIndex((s) => s.id === pick.id);
+      if (existsIdx >= 0) {
+        nextStamps = stamps.map((s) => (s.id === pick.id ? rewardedStamp! : s));
+      } else {
+        nextStamps = [rewardedStamp, ...stamps];
+      }
+    }
+  }
+
+  const nextState: StreakState = {
+    ...streakState,
+    currentStreak: nextStreak,
+    bestStreak: Math.max(streakState.bestStreak, nextStreak),
+    lastCheckInDate: todayKey,
+    totalCheckIns: streakState.totalCheckIns + 1,
+  };
+
+  return {
+    claimed: true,
+    streakState: nextState,
+    stamps: nextStamps,
+    diamondBalance: diamondBalance + template.rewardDiamonds,
+    addedDiamonds: template.rewardDiamonds,
+    claimedDay: cycleDay,
+    rewardedStamp,
+  };
+}
+
+export function claimStreakMilestone({
+  streakState,
+  milestoneId,
+  diamondBalance,
+}: {
+  streakState: StreakState;
+  milestoneId: string;
+  diamondBalance: number;
+}): {
+  claimed: boolean;
+  streakState: StreakState;
+  diamondBalance: number;
+  addedDiamonds: number;
+} {
+  const milestone = getStreakMilestones(streakState).find((m) => m.id === milestoneId);
+  if (!milestone || !milestone.isUnlocked || milestone.isClaimed) {
+    return {
+      claimed: false,
+      streakState,
+      diamondBalance,
+      addedDiamonds: 0,
+    };
+  }
+
+  return {
+    claimed: true,
+    streakState: {
+      ...streakState,
+      claimedMilestoneIds: [...streakState.claimedMilestoneIds, milestone.id],
+    },
+    diamondBalance: diamondBalance + milestone.rewardDiamonds,
+    addedDiamonds: milestone.rewardDiamonds,
+  };
+}
+
+export function buyStreakShield({
+  streakState,
+  diamondBalance,
+}: {
+  streakState: StreakState;
+  diamondBalance: number;
+}): {
+  success: boolean;
+  reason?: 'max_shields' | 'insufficient_diamonds';
+  streakState: StreakState;
+  diamondBalance: number;
+} {
+  if (streakState.shields >= MAX_STREAK_SHIELDS) {
+    return { success: false, reason: 'max_shields', streakState, diamondBalance };
+  }
+  if (diamondBalance < STREAK_SHIELD_COST) {
+    return { success: false, reason: 'insufficient_diamonds', streakState, diamondBalance };
+  }
+  return {
+    success: true,
+    streakState: {
+      ...streakState,
+      shields: streakState.shields + 1,
+    },
+    diamondBalance: diamondBalance - STREAK_SHIELD_COST,
+  };
+}
+
+export function formatStampLocationLabel(
+  stamp: Pick<StampItem, 'city' | 'country'>
+): string {
+  const city = stamp.city.trim();
+  const country = stamp.country.trim();
+  if (city && country && city.toLowerCase() !== country.toLowerCase()) {
+    return `${city}, ${country}`;
+  }
+  return city || country || 'World Collection';
+}
+
+export function formatStampRarityLabel(rarity: StampRarity): string {
+  if (rarity === 'legendary') return 'Legendary';
+  if (rarity === 'rare') return 'Rare';
+  return 'Common';
+}
+
+export function formatStampCategoryLabel(category: StampCategory): string {
+  if (category === 'sports') return 'Sports';
+  if (category === 'landmark') return 'Landmark';
+  if (category === 'city') return 'City';
+  return 'Country';
+}
+
+export function buildDefaultShareCaption(
+  stamp: StampItem,
+  folderTitle?: string
+): string {
+  const location = formatStampLocationLabel(stamp);
+  const cleanFolder = folderTitle?.trim();
+
+  if (stamp.category === 'sports' && stamp.celebrationLabel) {
+    return `Collected ${stamp.title} (${stamp.celebrationLabel}) in ${cleanFolder || 'Sports Legends'}.`;
+  }
+
+  const normalizedTitle = stamp.title.trim().toLowerCase();
+  const normalizedLocation = location.toLowerCase();
+  if (
+    normalizedTitle === normalizedLocation ||
+    normalizedLocation.includes(normalizedTitle)
+  ) {
+    return `Added ${stamp.title} (${formatStampRarityLabel(stamp.rarity)}) to ${
+      cleanFolder ? `my ${cleanFolder} folder` : 'my collection'
+    }.`;
+  }
+
+  return `Collected ${stamp.title} from ${location}${
+    cleanFolder ? ` in ${cleanFolder}` : ''
+  }.`;
+}
+
+export function createSocialPostFromStamp({
+  stamp,
+  userProfile,
+  caption,
+  folderTitle,
+  postId,
+  timestampLabel = 'Just now',
+}: {
+  stamp: StampItem;
+  userProfile: Pick<UserProfile, 'name' | 'handle' | 'initials'>;
+  caption?: string;
+  folderTitle?: string;
+  postId?: string;
+  timestampLabel?: string;
+}): SocialPost {
+  const cleanFolder = folderTitle?.trim() || formatStampCategoryLabel(stamp.category);
+  const trimmedCaption = caption?.trim() ?? '';
+  const finalCaption =
+    trimmedCaption.length > 0
+      ? trimmedCaption
+      : buildDefaultShareCaption(stamp, cleanFolder);
+
+  return {
+    id: postId ?? `post-${Date.now()}`,
+    authorName: userProfile.name,
+    authorHandle: userProfile.handle,
+    authorInitials: userProfile.initials,
+    authorTint: '#0A0A0A',
+    stampId: stamp.id,
+    stampTitle: stamp.title,
+    stampCountry: stamp.country,
+    stampCity: stamp.city,
+    stampCategory: stamp.category,
+    stampRarity: stamp.rarity,
+    stampTags: getStampTags(stamp),
+    folderTitle: cleanFolder,
+    caption: finalCaption,
+    locationLabel: formatStampLocationLabel(stamp),
+    timestampLabel,
+    likesCount: 1,
+    isLiked: true,
+    isSaved: false,
+    isDemoSeed: false,
+  };
+}
+
 

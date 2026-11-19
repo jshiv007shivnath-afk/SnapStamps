@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   DEFAULT_CHAT_THREADS,
@@ -11,10 +11,12 @@ import {
   DEMO_STAMPS,
   ONBOARDING_SHOWCASE_STAMPS,
 } from './data/seedData';
+import { STORE_CATALOG } from './data/storeCatalog';
 import type {
   AppNotification,
   AppSettings,
   AppTab,
+  ChatFilterMode,
   ChatThread,
   CircleChatMessage,
   CircleMember,
@@ -25,14 +27,20 @@ import type {
   SocialPost,
   StampItem,
   StampPocket,
+  StreakState,
   UserProfile,
 } from './types/stamp';
 import { initCapacitorMobile, triggerHapticImpact } from './utils/capacitorBridge';
 import {
   assignStampsToFolder,
+  buyStreakShield,
+  claimDailyStreakCheckIn,
   claimDailyTaskReward,
+  claimStreakMilestone,
   collectStamp,
   createCustomFolder,
+  createInitialStreakState,
+  createSocialPostFromStamp,
   evaluateDailyChallenges,
   getTodayDateKey,
   getUnreadNotificationCount,
@@ -45,6 +53,15 @@ import {
   toggleStampFavorite,
   transferDiamondsInChat,
 } from './utils/stampLogic';
+import {
+  NAV_ICON_LOOP_DURATION_MS,
+  shouldReplayNavIconLoopOnReturn,
+} from './utils/entryLoopLogic';
+import {
+  classifyStampLocationTags,
+  ensureStampTags,
+} from './utils/stampTagging';
+import { buildCustomTravelStampSvg } from './utils/stampArtGenerator';
 import { BottomDock } from './components/BottomDock';
 import { CreateFolderModal } from './components/CreateFolderModal';
 import { EditProfileView } from './components/EditProfileView';
@@ -61,6 +78,7 @@ import { StampDetailModal } from './components/StampDetailModal';
 import { StampLibraryView } from './components/StampLibraryView';
 import { StampStudioModal } from './components/StampStudioModal';
 import { StoreView } from './components/StoreView';
+import { StreakLadderView } from './components/StreakLadderView';
 
 const STORAGE_KEY = 'snapstamps_state_v3';
 const INITIAL_DIAMOND_BALANCE = 1500;
@@ -88,6 +106,7 @@ interface PersistedState {
   claimedChallengeIds: string[];
   notifications: AppNotification[];
   settings: AppSettings;
+  streakState: StreakState;
 }
 
 function loadInitialState(): PersistedState {
@@ -106,13 +125,26 @@ function loadInitialState(): PersistedState {
         Array.isArray(parsed.posts)
       ) {
         const sameDay = parsed.dailyDateKey === todayKey;
+        const catalogArtById = new Map(
+          STORE_CATALOG.map((catalogStamp) => [catalogStamp.id, catalogStamp.imageUrl])
+        );
+        const refreshedStamps = parsed.stamps.map((savedStamp) => {
+          const upgradedImage =
+            !savedStamp.isCustomGenerated && catalogArtById.has(savedStamp.id)
+              ? catalogArtById.get(savedStamp.id)!
+              : savedStamp.imageUrl;
+          return ensureStampTags({
+            ...savedStamp,
+            imageUrl: upgradedImage,
+          });
+        });
         return {
           hasOnboarded: autostart ? true : Boolean(parsed.hasOnboarded),
           isAuthenticated: autostart
             ? true
             : parsed.isAuthenticated ?? Boolean(parsed.hasOnboarded),
           userProfile: parsed.userProfile ?? DEFAULT_PROFILE,
-          stamps: parsed.stamps,
+          stamps: refreshedStamps,
           pockets: parsed.pockets.length > 0 ? parsed.pockets : DEMO_POCKETS,
           posts: parsed.posts,
           circleMessages:
@@ -137,6 +169,10 @@ function loadInitialState(): PersistedState {
               ? parsed.notifications
               : DEFAULT_NOTIFICATIONS,
           settings: parsed.settings ? { ...DEFAULT_SETTINGS, ...parsed.settings } : DEFAULT_SETTINGS,
+          streakState:
+            parsed.streakState && typeof parsed.streakState.currentStreak === 'number'
+              ? parsed.streakState
+              : createInitialStreakState(),
         };
       }
     }
@@ -158,6 +194,7 @@ function loadInitialState(): PersistedState {
     claimedChallengeIds: [],
     notifications: DEFAULT_NOTIFICATIONS,
     settings: DEFAULT_SETTINGS,
+    streakState: createInitialStreakState(),
   };
 }
 
@@ -179,6 +216,8 @@ export default function App() {
   );
   const [chatThreads, setChatThreads] = useState<ChatThread[]>(initial.chatThreads);
   const [activeChatThreadId, setActiveChatThreadId] = useState<string | null>(null);
+  const [feedFilterMode, setFeedFilterMode] = useState<ChatFilterMode>('all');
+  const [recentlySharedPostId, setRecentlySharedPostId] = useState<string | null>(null);
   const [diamondBalance, setDiamondBalance] = useState<number>(
     initial.diamondBalance
   );
@@ -189,6 +228,7 @@ export default function App() {
     initial.notifications
   );
   const [settings, setSettings] = useState<AppSettings>(initial.settings);
+  const [streakState, setStreakState] = useState<StreakState>(initial.streakState);
 
   // Filters & search
   const [activeFilter, setActiveFilter] = useState<CollectionFilter>('all');
@@ -217,12 +257,59 @@ export default function App() {
     void triggerHapticImpact(level);
   };
 
+  // 5-second smooth navigation bar icon loop every time the user enters or returns to the app
+  const [navIconLoopActive, setNavIconLoopActive] = useState<boolean>(false);
+  const [navIconLoopRunId, setNavIconLoopRunId] = useState<number>(0);
+  const hiddenAtRef = useRef<number | null>(null);
+  const navLoopTimerRef = useRef<number | null>(null);
+
+  const triggerNavIconLoop = useCallback(() => {
+    if (navLoopTimerRef.current !== null) {
+      window.clearTimeout(navLoopTimerRef.current);
+    }
+    setNavIconLoopRunId((prev) => prev + 1);
+    setNavIconLoopActive(true);
+    navLoopTimerRef.current = window.setTimeout(() => {
+      setNavIconLoopActive(false);
+      navLoopTimerRef.current = null;
+    }, NAV_ICON_LOOP_DURATION_MS);
+  }, []);
+
+  const isMainAppVisible = isAuthenticated && !showLoginScreen && hasOnboarded;
+
+  useEffect(() => {
+    if (!isMainAppVisible) return;
+    triggerNavIconLoop();
+    return () => {
+      if (navLoopTimerRef.current !== null) {
+        window.clearTimeout(navLoopTimerRef.current);
+        navLoopTimerRef.current = null;
+      }
+    };
+  }, [isMainAppVisible, triggerNavIconLoop]);
+
   useEffect(() => {
     void initCapacitorMobile();
     const onQuotaExceeded = () => setGmpQuotaExceeded(true);
     window.addEventListener('gmp-quota-exceeded', onQuotaExceeded);
-    return () => window.removeEventListener('gmp-quota-exceeded', onQuotaExceeded);
-  }, []);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAtRef.current = Date.now();
+      } else if (document.visibilityState === 'visible') {
+        if (shouldReplayNavIconLoopOnReturn(hiddenAtRef.current, Date.now())) {
+          triggerNavIconLoop();
+        }
+        hiddenAtRef.current = null;
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      window.removeEventListener('gmp-quota-exceeded', onQuotaExceeded);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [triggerNavIconLoop]);
 
   const mainScrollRef = useRef<HTMLElement | null>(null);
   const authScrollRef = useRef<HTMLDivElement | null>(null);
@@ -249,6 +336,7 @@ export default function App() {
         claimedChallengeIds,
         notifications,
         settings,
+        streakState,
       };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch {
@@ -267,6 +355,7 @@ export default function App() {
     claimedChallengeIds,
     notifications,
     settings,
+    streakState,
   ]);
 
   const selectedStamp = stamps.find((s) => s.id === selectedStampId) ?? null;
@@ -370,10 +459,20 @@ export default function App() {
   };
 
   const handleAddPlaceAsStamp = (place: PlaceCandidate) => {
+    const resolvedCountry = place.address.split(',').pop()?.trim() || 'Explorer';
+    const { tags } = classifyStampLocationTags({
+      title: place.name,
+      city: place.name,
+      country: resolvedCountry,
+      address: place.address,
+      categoryLabel: place.categoryLabel,
+      category: 'landmark',
+      coordinates: { lat: place.lat, lng: place.lng },
+    });
     const newStamp: StampItem = {
       id: `place-${place.id}`,
       title: place.name.slice(0, 20),
-      country: place.address.split(',').pop()?.trim() || 'Explorer',
+      country: resolvedCountry,
       city: place.name,
       category: 'landmark',
       rarity: 'rare',
@@ -382,13 +481,20 @@ export default function App() {
       isFavorite: false,
       isUnlocked: true,
       coordinates: { lat: place.lat, lng: place.lng },
-      imageUrl: ONBOARDING_SHOWCASE_STAMPS[0]?.imageUrl || '',
+      imageUrl: buildCustomTravelStampSvg({
+        title: place.name.slice(0, 20),
+        country: resolvedCountry,
+        city: place.name,
+        category: 'landmark',
+        themeTag: tags[0],
+      }),
       accentColor: '#98D4DC',
       bannerColor: '#0E7490',
       pocketId: pockets[0]?.id || 'landmarks',
       description: `${place.categoryLabel} discovered via Google Maps at ${place.address}.`,
       unlockedAt: 'Nov 2026',
       isDemoSeed: false,
+      tags,
     };
     setStamps((prev) => {
       if (prev.some((s) => s.id === newStamp.id)) return prev;
@@ -399,9 +505,10 @@ export default function App() {
 
   const handleSaveNewStamp = (newStamp: StampItem) => {
     playHaptic('medium');
-    setStamps((prev) => [newStamp, ...prev]);
+    const taggedStamp = ensureStampTags(newStamp);
+    setStamps((prev) => [taggedStamp, ...prev]);
     setActiveTab('stamps');
-    setActivePocketId(newStamp.pocketId);
+    setActivePocketId(taggedStamp.pocketId);
     setActiveFilter('all');
   };
 
@@ -438,25 +545,22 @@ export default function App() {
   };
 
   const handleCreatePost = (stampId: string, caption: string) => {
-    const stamp = stamps.find((s) => s.id === stampId);
+    const stamp =
+      stamps.find((s) => s.id === stampId) ??
+      STORE_CATALOG.find((s) => s.id === stampId);
     if (!stamp) return;
     playHaptic('medium');
-    const post: SocialPost = {
-      id: `post-${Date.now()}`,
-      authorName: userProfile.name,
-      authorHandle: userProfile.handle,
-      authorInitials: userProfile.initials,
-      authorTint: '#0A0A0A',
-      stampId: stamp.id,
+    const folderTitle = pockets.find((p) => p.id === stamp.pocketId)?.title;
+    const post = createSocialPostFromStamp({
+      stamp,
+      userProfile,
       caption,
-      locationLabel: `${stamp.city} · ${stamp.country} · ${stamp.rarity[0].toUpperCase()}${stamp.rarity.slice(1)}`,
-      timestampLabel: 'Just now',
-      likesCount: 1,
-      isLiked: true,
-      isSaved: false,
-      isDemoSeed: false,
-    };
+      folderTitle,
+    });
     setPosts((prev) => [post, ...prev]);
+    setRecentlySharedPostId(post.id);
+    setActiveChatThreadId(null);
+    setFeedFilterMode('finds');
     setActiveTab('feed');
   };
 
@@ -528,6 +632,64 @@ export default function App() {
     };
     setChatThreads((prev) => [newThread, ...prev]);
     setActiveChatThreadId(newThread.id);
+  };
+
+  const todayKey = getTodayDateKey();
+
+  const handleClaimDailyStreak = () => {
+    const result = claimDailyStreakCheckIn({
+      streakState,
+      stamps,
+      storeCatalog: STORE_CATALOG,
+      diamondBalance,
+      todayKey,
+      unlockedAtLabel: 'Nov 2026',
+    });
+    if (result.claimed) {
+      playHaptic('heavy');
+      setStreakState(result.streakState);
+      setStamps(result.stamps);
+      setDiamondBalance(result.diamondBalance);
+    }
+    return {
+      claimed: result.claimed,
+      addedDiamonds: result.addedDiamonds,
+      claimedDay: result.claimedDay,
+      rewardedStamp: result.rewardedStamp,
+    };
+  };
+
+  const handleClaimStreakMilestone = (milestoneId: string) => {
+    const result = claimStreakMilestone({
+      streakState,
+      milestoneId,
+      diamondBalance,
+    });
+    if (result.claimed) {
+      playHaptic('medium');
+      setStreakState(result.streakState);
+      setDiamondBalance(result.diamondBalance);
+    }
+    return {
+      claimed: result.claimed,
+      addedDiamonds: result.addedDiamonds,
+    };
+  };
+
+  const handleBuyStreakShield = () => {
+    const result = buyStreakShield({
+      streakState,
+      diamondBalance,
+    });
+    if (result.success) {
+      playHaptic('medium');
+      setStreakState(result.streakState);
+      setDiamondBalance(result.diamondBalance);
+    }
+    return {
+      success: result.success,
+      reason: result.reason,
+    };
   };
 
   const pageTransition = shouldReduceMotion
@@ -645,6 +807,20 @@ export default function App() {
                   />
                 )}
 
+                {activeTab === 'streaks' && (
+                  <StreakLadderView
+                    streakState={streakState}
+                    todayKey={todayKey}
+                    diamondBalance={diamondBalance}
+                    onBack={() => setActiveTab('library')}
+                    onOpenStore={() => setActiveTab('store')}
+                    onClaimDailyCheckIn={handleClaimDailyStreak}
+                    onClaimMilestone={handleClaimStreakMilestone}
+                    onBuyShield={handleBuyStreakShield}
+                    onSelectStamp={(s) => setSelectedStampId(s.id)}
+                  />
+                )}
+
                 {activeTab === 'stamps' && (
                   <MyStampsView
                     stamps={stamps}
@@ -676,6 +852,9 @@ export default function App() {
                     activeThreadId={activeChatThreadId}
                     diamondBalance={diamondBalance}
                     userProfile={userProfile}
+                    filterMode={feedFilterMode}
+                    onFilterModeChange={setFeedFilterMode}
+                    highlightedPostId={recentlySharedPostId}
                     onSelectThread={handleSelectChatThread}
                     onSendThreadMessage={handleSendThreadMessage}
                     onToggleThreadFavorite={handleToggleThreadFavorite}
@@ -768,9 +947,11 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {isAuthenticated && !showLoginScreen && hasOnboarded && !hideDockForSubscreen && (
+      {isMainAppVisible && !hideDockForSubscreen && (
         <BottomDock
           activeTab={dockActiveTab}
+          animateIcons={navIconLoopActive}
+          animationRunId={navIconLoopRunId}
           onTabChange={(nextTab) => {
             playHaptic('light');
             if (nextTab === 'feed') setActiveChatThreadId(null);
@@ -800,12 +981,9 @@ export default function App() {
           setFocusedGlobeStampId(stampId);
           setActiveTab('globe');
         }}
-        onShareToFeed={(s) => {
+        onShareToFeed={(s, caption) => {
           setSelectedStampId(null);
-          handleCreatePost(
-            s.id,
-            `Added ${s.title} (${s.country}) to my SnapStamps collection!`
-          );
+          handleCreatePost(s.id, caption);
         }}
       />
 

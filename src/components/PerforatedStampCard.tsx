@@ -14,6 +14,16 @@ interface PerforatedStampCardProps {
   className?: string;
 }
 
+function getArtworkScaleClass(imageUrl: string): string {
+  if (imageUrl.includes('stamp_japan_fuji_')) {
+    return 'scale-[1.24] group-hover:scale-[1.28]';
+  }
+  if (imageUrl.includes('stamp_italy_rome_')) {
+    return 'scale-[1.18] group-hover:scale-[1.22]';
+  }
+  return 'group-hover:scale-[1.03]';
+}
+
 export function PerforatedStampCard({
   stamp,
   onSelect,
@@ -26,6 +36,7 @@ export function PerforatedStampCard({
   const [imgError, setImgError] = useState(false);
 
   const isSports = stamp.category === 'sports';
+  const artworkScaleClass = getArtworkScaleClass(stamp.imageUrl || '');
 
   return (
     <motion.div
@@ -85,7 +96,7 @@ export function PerforatedStampCard({
                         loading="lazy"
                         referrerPolicy="no-referrer"
                         onError={() => setImgError(true)}
-                        className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] ${
+                        className={`h-full w-full object-cover transition-transform duration-300 ${artworkScaleClass} ${
                           showUncollectedBadge && !stamp.isUnlocked ? 'grayscale-[45%] opacity-85' : ''
                         }`}
                       />
